@@ -1,0 +1,22 @@
+.env
+.env.*
+!.env.example
+certificados/
+*.pfx
+*.p12
+*.key
+
+# Local data and QA artifacts
+app/server/data/*.db*
+app/qa-login.png
+
+# Downloaded production frontend snapshot
+/js/
+/css/
+/fonts/
+/images/
+/index.html
+/manifest.webmanifest
+/baixar_chunks.ps1
+/endpoints_api.txt
+/PROJECT_CONTEXT.md

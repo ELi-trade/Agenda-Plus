@@ -1,0 +1,12 @@
+{
+  "name": "agenda-plus-local",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node app/server/server.js",
+    "test": "node app/server/testes.js"
+  },
+  "engines": {
+    "node": ">=22.13"
+  }
+}
