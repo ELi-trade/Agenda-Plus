@@ -1,177 +1,191 @@
 ﻿/* ========================================
-   DESIGN FUTURISTA - GLASSMORPHISM NEON
-   Com contraste forçado para visibilidade
+   DESIGN NEON FUTURISTA - ESTILO WELCOME
+   Linhas de luz curvas + glow central
    ======================================== */
 
-/* Fundo com imagem completa da Janine + overlay escuro */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Orbitron:wght@400;700;900&display=swap');
+
+/* Fundo escuro com linhas neon curvas */
 .pub-body,
 .client-shell {
-  background: linear-gradient(135deg, rgba(8, 12, 24, 0.85), rgba(20, 10, 40, 0.9)),
-              url('/images/capa.jpg') center center no-repeat fixed !important;
-  background-size: contain !important;
+  background: #000 !important;
   min-height: 100vh;
   position: relative;
+  overflow: hidden;
 }
 
-/* Efeito de brilho no fundo */
+/* Linhas de neon curvas (efeito de luz) */
 .pub-body::before,
 .client-shell::before {
   content: '';
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   background: 
-    radial-gradient(circle at 20% 30%, rgba(0, 177, 197, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 80% 70%, rgba(214, 75, 134, 0.15) 0%, transparent 50%);
-  pointer-events: none;
+    radial-gradient(ellipse at center, rgba(0, 177, 197, 0.15) 0%, transparent 70%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 600'%3E%3Cpath d='M0,300 Q300,100 600,300 T1200,300' fill='none' stroke='%2300b1c5' stroke-width='2' opacity='0.6'/%3E%3Cpath d='M0,300 Q300,500 600,300 T1200,300' fill='none' stroke='%2300b1c5' stroke-width='2' opacity='0.6'/%3E%3C/svg%3E") center/cover no-repeat;
+  animation: neonFlow 8s ease-in-out infinite;
   z-index: 0;
 }
 
-/* Animação de raios de luz passando */
+/* Brilho central difuso */
 .pub-body::after,
 .client-shell::after {
   content: '';
   position: fixed;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(
-    45deg,
-    transparent 30%,
-    rgba(0, 177, 197, 0.03) 45%,
-    rgba(214, 75, 134, 0.03) 50%,
-    transparent 65%
-  );
-  animation: raio 8s linear infinite;
-  pointer-events: none;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(0, 177, 197, 0.3) 0%, transparent 70%);
+  filter: blur(60px);
+  animation: glowPulse 4s ease-in-out infinite;
   z-index: 0;
+  pointer-events: none;
 }
 
-@keyframes raio {
-  0% { transform: translateX(-100%) translateY(-100%); }
-  100% { transform: translateX(100%) translateY(100%); }
+@keyframes neonFlow {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
 }
 
-/* Container principal com efeito glassmorphism */
+@keyframes glowPulse {
+  0%, 100% { 
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.6;
+  }
+  50% { 
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 1;
+  }
+}
+
+/* Container principal */
 .pub-container,
 .client-shell main {
-  background: rgba(255, 255, 255, 0.08) !important;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.7) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 177, 197, 0.3);
   border-radius: 20px;
-  padding: 30px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  padding: 40px;
+  box-shadow: 
+    0 0 50px rgba(0, 177, 197, 0.3),
+    inset 0 0 50px rgba(0, 177, 197, 0.1);
   position: relative;
   z-index: 1;
   max-width: 900px;
-  margin: 26px auto;
+  margin: 40px auto;
 }
 
-/* Topo com efeito glass */
+/* Header centralizado */
 .pub-topo,
 .client-shell > header {
-  background: rgba(255, 255, 255, 0.1) !important;
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  text-align: center !important;
+  padding: 20px !important;
+  background: transparent !important;
+  border-bottom: 1px solid rgba(0, 177, 197, 0.3);
+  position: relative;
+  z-index: 1;
 }
 
+/* Título com glow neon */
 .pub-topo .nome,
-.client-shell > header .logo {
+.client-shell > header .logo,
+header .logo {
+  font-family: 'Orbitron', sans-serif !important;
+  font-size: 32px !important;
+  font-weight: 700 !important;
+  letter-spacing: 4px !important;
   color: #fff !important;
-  text-shadow: 0 0 20px rgba(0, 177, 197, 0.8), 0 0 40px rgba(0, 177, 197, 0.4);
-  font-size: 20px;
-  font-weight: 700;
+  text-transform: uppercase;
+  text-shadow:
+    0 0 10px #00b1c5,
+    0 0 20px #00b1c5,
+    0 0 40px #00b1c5,
+    0 0 80px #00b1c5;
+  animation: textGlow 3s ease-in-out infinite;
 }
 
-.pub-topo .texto-fraco { 
-  color: rgba(255,255,255,0.9) !important; 
-  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+@keyframes textGlow {
+  0%, 100% {
+    text-shadow:
+      0 0 10px #00b1c5,
+      0 0 20px #00b1c5,
+      0 0 40px #00b1c5,
+      0 0 80px #00b1c5;
+  }
+  50% {
+    text-shadow:
+      0 0 5px #00b1c5,
+      0 0 10px #00b1c5,
+      0 0 20px #00b1c5,
+      0 0 40px #00b1c5;
+  }
 }
 
-/* TÍTULO ESTILIZADO */
+/* Títulos internos */
 .pub-container h2,
 .client-shell main h2,
 .client-shell main h1 {
+  font-family: 'Orbitron', sans-serif !important;
   color: #fff !important;
-  font-family: 'Georgia', 'Times New Roman', serif;
-  font-size: 42px;
-  font-weight: 700;
+  font-size: 36px !important;
+  font-weight: 700 !important;
   text-transform: uppercase;
   letter-spacing: 3px;
-  text-shadow: 
-    0 0 20px rgba(0, 177, 197, 0.8),
-    0 0 40px rgba(0, 177, 197, 0.6),
-    0 0 60px rgba(0, 177, 197, 0.4),
-    0 2px 4px rgba(0, 0, 0, 0.8);
-  margin-bottom: 20px;
-  line-height: 1.2;
-}
-
-/* Passos do agendamento */
-.passo {
-  color: rgba(255, 255, 255, 0.9) !important;
-  border-bottom-color: rgba(255, 255, 255, 0.3);
-  transition: all 0.3s ease;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
-  font-weight: 600;
-}
-
-.passo.ativo {
-  color: #00b1c5 !important;
-  border-bottom-color: #00b1c5 !important;
-  text-shadow: 0 0 20px rgba(0, 177, 197, 1), 0 0 40px rgba(0, 177, 197, 0.6);
-}
-
-.passo.feito {
-  color: #30a46c !important;
-  border-bottom-color: #30a46c !important;
-  text-shadow: 0 0 15px rgba(48, 164, 108, 0.8);
+  text-align: center;
+  text-shadow:
+    0 0 10px #00b1c5,
+    0 0 20px #00b1c5,
+    0 0 40px #00b1c5;
+  margin-bottom: 30px;
 }
 
 /* Cards de serviço */
 .lista-servicos .opcao {
-  background: rgba(255, 255, 255, 0.1) !important;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 177, 197, 0.1) !important;
+  border: 1px solid rgba(0, 177, 197, 0.4);
   border-radius: 12px;
   padding: 16px;
   margin-bottom: 12px;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 20px rgba(0, 177, 197, 0.2);
 }
 
 .lista-servicos .opcao:hover {
-  background: rgba(255, 255, 255, 0.15) !important;
-  border-color: rgba(0, 177, 197, 0.6);
-  box-shadow: 0 4px 25px rgba(0, 177, 197, 0.4);
+  background: rgba(0, 177, 197, 0.2) !important;
+  border-color: #00b1c5;
+  box-shadow: 0 0 30px rgba(0, 177, 197, 0.5);
   transform: translateY(-2px);
 }
 
 .lista-servicos .opcao.sel {
-  background: rgba(0, 177, 197, 0.2) !important;
-  border-color: #00b1c5 !important;
-  box-shadow: 0 0 30px rgba(0, 177, 197, 0.6);
+  background: rgba(0, 177, 197, 0.3) !important;
+  border-color: #00b1c5;
+  box-shadow: 0 0 40px rgba(0, 177, 197, 0.7);
 }
 
 .lista-servicos .opcao b { 
   color: #fff !important; 
   font-size: 16px;
-  text-shadow: 0 0 10px rgba(0, 177, 197, 0.8), 0 2px 4px rgba(0, 0, 0, 0.8);
+  text-shadow: 0 0 10px rgba(0, 177, 197, 0.8);
 }
 
 .lista-servicos .opcao .texto-fraco { 
-  color: rgba(255, 255, 255, 0.9) !important;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+  color: rgba(255, 255, 255, 0.8) !important;
 }
 
 .servico-preco b {
   color: #00b1c5 !important;
   font-size: 18px;
-  text-shadow: 0 0 15px rgba(0, 177, 197, 1), 0 2px 4px rgba(0, 0, 0, 0.8);
+  text-shadow: 0 0 15px #00b1c5;
 }
 
 /* Slots de horário */
@@ -182,18 +196,16 @@
 }
 
 .slot {
-  background: rgba(255, 255, 255, 0.1) !important;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 177, 197, 0.1) !important;
+  border: 1px solid rgba(0, 177, 197, 0.4);
   border-radius: 10px;
   padding: 12px;
   color: #fff !important;
   font-size: 15px;
   font-weight: 600;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 0 15px rgba(0, 177, 197, 0.2);
+  text-shadow: 0 0 10px rgba(0, 177, 197, 0.8);
 }
 
 .slot:hover {
@@ -204,11 +216,10 @@
 }
 
 .slot.sel {
-  background: linear-gradient(135deg, #00b1c5, #008c9c) !important;
-  border-color: #00b1c5 !important;
-  box-shadow: 0 0 30px rgba(0, 177, 197, 0.8);
+  background: rgba(0, 177, 197, 0.4) !important;
+  border-color: #00b1c5;
+  box-shadow: 0 0 35px rgba(0, 177, 197, 0.9);
   color: #fff !important;
-  text-shadow: 0 0 15px rgba(255, 255, 255, 0.8), 0 2px 4px rgba(0, 0, 0, 0.8);
 }
 
 /* Dias da roleta */
@@ -220,26 +231,24 @@
 }
 
 .dia-chip {
-  background: rgba(255, 255, 255, 0.1) !important;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 177, 197, 0.1) !important;
+  border: 1px solid rgba(0, 177, 197, 0.4);
   border-radius: 12px;
   padding: 10px 8px;
   min-width: 70px;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 15px rgba(0, 177, 197, 0.2);
 }
 
 .dia-chip:hover {
-  background: rgba(255, 255, 255, 0.15) !important;
-  border-color: rgba(0, 177, 197, 0.6);
+  background: rgba(0, 177, 197, 0.2) !important;
+  border-color: #00b1c5;
   transform: translateY(-2px);
 }
 
 .dia-chip.sel {
-  background: linear-gradient(135deg, #00b1c5, #008c9c) !important;
-  border-color: #00b1c5 !important;
+  background: rgba(0, 177, 197, 0.4) !important;
+  border-color: #00b1c5;
   box-shadow: 0 0 25px rgba(0, 177, 197, 0.7);
 }
 
@@ -247,69 +256,63 @@
   color: rgba(255, 255, 255, 0.9) !important;
   font-size: 11px; 
   text-transform: uppercase;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
 }
 
 .dia-chip .n { 
   color: #fff !important;
   font-weight: 700; 
   font-size: 18px;
-  text-shadow: 0 0 15px rgba(255, 255, 255, 0.8), 0 2px 4px rgba(0, 0, 0, 0.8);
+  text-shadow: 0 0 10px #00b1c5;
 }
-
-.dia-chip.sel .d, .dia-chip.sel .n { color: #fff !important; }
 
 /* Botões */
 .btn-primario,
 .btn.btn-primario {
-  background: linear-gradient(135deg, #00b1c5, #008c9c) !important;
-  border: none;
+  background: transparent !important;
+  border: 2px solid #00b1c5 !important;
   border-radius: 10px;
   padding: 12px 24px;
-  color: #fff !important;
-  font-size: 15px;
-  font-weight: 600;
+  color: #00b1c5 !important;
+  font-family: 'Orbitron', sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  letter-spacing: 2px;
+  text-transform: uppercase;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 20px rgba(0, 177, 197, 0.6);
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.8), 0 2px 4px rgba(0, 0, 0, 0.8);
-  display: inline-block;
-  text-decoration: none;
+  box-shadow: 0 0 20px rgba(0, 177, 197, 0.4);
+  text-shadow: 0 0 10px #00b1c5;
 }
 
 .btn-primario:hover,
 .btn.btn-primario:hover {
-  background: linear-gradient(135deg, #00c5d9, #009cb0) !important;
-  box-shadow: 0 6px 30px rgba(0, 177, 197, 0.8);
+  background: #00b1c5 !important;
+  color: #000 !important;
+  box-shadow: 0 0 40px rgba(0, 177, 197, 0.8);
+  text-shadow: none;
   transform: translateY(-2px);
-  color: #fff !important;
 }
-
-.btn-primario:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
 .btn-sec,
 .btn.btn-sec {
-  background: rgba(255, 255, 255, 0.1) !important;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: transparent !important;
+  border: 1px solid rgba(0, 177, 197, 0.6) !important;
   border-radius: 10px;
   padding: 10px 20px;
-  color: #fff !important;
-  font-size: 14px;
+  color: #00b1c5 !important;
+  font-family: 'Orbitron', sans-serif !important;
+  font-size: 12px !important;
+  letter-spacing: 1px;
   cursor: pointer;
   transition: all 0.3s ease;
-  display: inline-block;
-  text-decoration: none;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+  text-shadow: 0 0 8px rgba(0, 177, 197, 0.6);
 }
 
 .btn-sec:hover,
 .btn.btn-sec:hover {
-  background: rgba(255, 255, 255, 0.2) !important;
-  border-color: rgba(0, 177, 197, 0.6);
+  background: rgba(0, 177, 197, 0.2) !important;
+  border-color: #00b1c5;
   box-shadow: 0 0 20px rgba(0, 177, 197, 0.5);
-  color: #fff !important;
 }
 
 /* Formulários */
@@ -319,21 +322,13 @@
 .client-shell main input,
 .client-shell main select,
 .client-shell main textarea {
-  background: rgba(255, 255, 255, 0.1) !important;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 177, 197, 0.1) !important;
+  border: 1px solid rgba(0, 177, 197, 0.4);
   border-radius: 10px;
   padding: 12px;
   color: #fff !important;
   font-size: 15px;
   transition: all 0.3s ease;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
-}
-
-.pub-container input::placeholder,
-.client-shell main input::placeholder {
-  color: rgba(255, 255, 255, 0.6) !important;
 }
 
 .pub-container input:focus,
@@ -342,7 +337,7 @@
 .client-shell main input:focus,
 .client-shell main select:focus,
 .client-shell main textarea:focus {
-  background: rgba(255, 255, 255, 0.15) !important;
+  background: rgba(0, 177, 197, 0.2) !important;
   border-color: #00b1c5 !important;
   box-shadow: 0 0 20px rgba(0, 177, 197, 0.6);
   outline: none;
@@ -350,38 +345,32 @@
 
 .pub-container label,
 .client-shell main label {
-  color: rgba(255, 255, 255, 0.95) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
   font-size: 14px;
   margin-bottom: 6px;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
 }
 
 /* Categorias de serviço */
 .servicos-categoria {
-  background: rgba(255, 255, 255, 0.1) !important;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 177, 197, 0.1) !important;
+  border: 1px solid rgba(0, 177, 197, 0.4);
   border-radius: 12px;
   margin-bottom: 12px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 20px rgba(0, 177, 197, 0.2);
 }
 
 .servicos-categoria > summary { 
   color: #fff !important;
   padding: 14px 18px;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
 }
 
 .servicos-categoria > summary > span { 
   font-size: 16px; 
   font-weight: 600;
-  text-shadow: 0 0 15px rgba(0, 177, 197, 0.8), 0 2px 4px rgba(0, 0, 0, 0.8);
+  text-shadow: 0 0 10px rgba(0, 177, 197, 0.8);
 }
 
-.servicos-categoria[open] > summary { border-bottom-color: rgba(255, 255, 255, 0.2); }
-
-/* CORREÇÃO CRÍTICA: Cards brancos internos (resumo Pix, tabelas) */
+/* Cards brancos internos (Pix, tabelas) */
 .pub-container .card,
 .pub-container .pix-resumo,
 .pub-container .pix-valor,
@@ -391,10 +380,9 @@
   background: rgba(255, 255, 255, 0.95) !important;
   border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 30px rgba(0, 177, 197, 0.3);
 }
 
-/* Texto dentro de cards brancos deve ser ESCURO */
 .pub-container .card *,
 .pub-container .pix-resumo *,
 .pub-container .pix-valor *,
@@ -417,19 +405,17 @@
 
 /* Confirmação de sucesso */
 .confirmacao-ok {
-  background: rgba(48, 164, 108, 0.2) !important;
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  border: 1px solid rgba(48, 164, 108, 0.4);
+  background: rgba(0, 177, 197, 0.2) !important;
+  border: 1px solid rgba(0, 177, 197, 0.5);
   border-radius: 16px;
   padding: 40px 30px;
-  box-shadow: 0 8px 32px rgba(48, 164, 108, 0.4);
+  box-shadow: 0 0 50px rgba(0, 177, 197, 0.5);
 }
 
 .confirmacao-ok .icone {
   font-size: 56px;
-  color: #30a46c !important;
-  text-shadow: 0 0 30px rgba(48, 164, 108, 0.8);
+  color: #00b1c5 !important;
+  text-shadow: 0 0 30px #00b1c5;
   animation: pulse 2s ease-in-out infinite;
 }
 
@@ -442,13 +428,12 @@
   color: #fff !important;
   font-size: 26px; 
   margin: 16px 0;
-  text-shadow: 0 0 25px rgba(255, 255, 255, 0.8), 0 2px 4px rgba(0, 0, 0, 0.8);
+  text-shadow: 0 0 20px #00b1c5;
 }
 
 .confirmacao-ok p { 
-  color: rgba(255, 255, 255, 0.95) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
   font-size: 16px;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
 }
 
 /* Tabela de agendamentos */
@@ -462,13 +447,11 @@
   background: rgba(0, 177, 197, 0.3) !important;
   color: #fff !important;
   font-weight: 600;
-  text-shadow: 0 0 15px rgba(0, 177, 197, 1), 0 2px 4px rgba(0, 0, 0, 0.8);
 }
 
 .client-shell main td {
   color: #1c2430 !important;
   border-bottom-color: rgba(0, 0, 0, 0.1);
-  text-shadow: none !important;
 }
 
 .client-shell main tr:hover td {
@@ -491,13 +474,18 @@
   .pub-container,
   .client-shell main {
     padding: 20px;
-    margin: 16px;
+    margin: 20px;
   }
   
   .pub-container h2,
   .client-shell main h2,
   .client-shell main h1 {
-    font-size: 32px;
+    font-size: 28px;
+  }
+  
+  .pub-topo .nome,
+  .client-shell > header .logo {
+    font-size: 24px !important;
   }
   
   .slots {
@@ -509,104 +497,4 @@
     padding: 10px;
     font-size: 14px;
   }
-}
-
-.pub-topo .logo-agenda,
-header a[href="/"] {
-  font-family: 'Cinzel', serif !important;
-  color: #fff !important;
-  text-shadow:
-    0 0 10px #00b1c5,
-    0 0 20px #00b1c5,
-    0 0 40px #00b1c5;
-  animation: neonPulse 3s ease-in-out infinite;
-}
-
-/* ========================================
-   TIPOGRAFIA NEON + PULSE - CORRIGIDO
-   Centralizado, legível, sem blur excessivo
-   ======================================== */
-
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&display=swap');
-
-/* Header público centralizado */
-.pub-topo,
-.client-shell > header {
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
-  text-align: center !important;
-  padding: 18px 20px !important;
-}
-
-/* Título do header - Studio Janine Paranhos */
-.pub-topo .nome,
-.client-shell > header .logo,
-header .logo {
-  font-family: 'Cinzel', serif !important;
-  font-size: 28px !important;
-  font-weight: 700 !important;
-  letter-spacing: 3px !important;
-  color: #fff !important;
-  text-transform: uppercase;
-  text-align: center !important;
-  margin: 0 auto !important;
-  /* Neon sutil - apenas 2 camadas para não borrar */
-  text-shadow:
-    0 0 10px rgba(0, 177, 197, 0.8),
-    0 0 20px rgba(0, 177, 197, 0.5);
-  animation: neonPulse 3s ease-in-out infinite;
-}
-
-/* Animação de pulsação suave */
-@keyframes neonPulse {
-  0%, 100% {
-    text-shadow:
-      0 0 10px rgba(0, 177, 197, 0.8),
-      0 0 20px rgba(0, 177, 197, 0.5);
-    filter: brightness(1);
-  }
-  50% {
-    text-shadow:
-      0 0 5px rgba(0, 177, 197, 0.6),
-      0 0 10px rgba(0, 177, 197, 0.3);
-    filter: brightness(0.9);
-  }
-}
-
-/* Logo "Agenda+" quando aparece */
-.pub-topo a[href="/"],
-header a[href="/"] {
-  font-family: 'Cinzel', serif !important;
-  color: #fff !important;
-  text-decoration: none !important;
-  font-size: 24px !important;
-  font-weight: 700 !important;
-  letter-spacing: 2px !important;
-  text-shadow:
-    0 0 10px rgba(0, 177, 197, 0.8),
-    0 0 20px rgba(0, 177, 197, 0.5);
-  animation: neonPulse 3s ease-in-out infinite;
-}
-
-/* Botão "Entrar" no header */
-.pub-topo .btn-sec,
-.client-shell > header .btn-sec {
-  position: absolute !important;
-  right: 20px !important;
-  border: 1px solid #00b1c5 !important;
-  color: #00b1c5 !important;
-  text-shadow: 0 0 8px rgba(0, 177, 197, 0.6);
-  box-shadow: 0 0 10px rgba(0, 177, 197, 0.3);
-  transition: all 0.3s ease;
-  font-family: 'Cinzel', serif !important;
-  letter-spacing: 1px;
-}
-
-.pub-topo .btn-sec:hover,
-.client-shell > header .btn-sec:hover {
-  background: #00b1c5 !important;
-  color: #fff !important;
-  box-shadow: 0 0 20px rgba(0, 177, 197, 0.6);
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
 }
