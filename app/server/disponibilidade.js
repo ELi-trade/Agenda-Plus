@@ -79,11 +79,20 @@ function slotsDoProfissional(profissionalId, servicoId, data) {
 
   const conflita = (min, minFim, lista) => lista.some(([i, f]) => min < f && minFim > i);
 
+  // Filtro de horário retroativo: se a data for HOJE, descartar slots já passados
+  const hojeBr = new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' });
+  const [hojeData, hojeHora] = hojeBr.split(', ');
+  const [ano, mes, dia] = hojeData.split('/').map(Number);
+  const dataHojeISO = `${ano}-${String(mes).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+  const minAtual = paraMinutos(hojeHora.trim());
+  const ehHoje = data === dataHojeISO;
+
   for (const turno of turnos) {
     const tIni = Math.max(paraMinutos(turno.hora_inicio), paraMinutos(funcionamento.hora_inicio || '00:00'));
     const tFim = Math.min(paraMinutos(turno.hora_fim), paraMinutos(funcionamento.hora_fim || '23:59'));
     for (let min = tIni; min + duracaoTotal <= tFim; min += passo) {
       const minFim = min + duracaoTotal;
+      if (ehHoje && min < minAtual) continue; // horário já passou hoje
       if (conflita(min, minFim, pausas.map((p) => [paraMinutos(p.hora_inicio), paraMinutos(p.hora_fim)]))) continue;
       if (dentroDeBloqueio(min, minFim)) continue;
       if (conflita(min, minFim, ocupados)) continue;
