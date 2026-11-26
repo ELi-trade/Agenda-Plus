@@ -1645,7 +1645,7 @@ async function renderPublico(msg) {
         <div class="passo ${p.passo >= 4 ? 'ativo' : ''} ${p.passo > 4 ? 'feito' : ''}">4. Seus dados</div>
         <div class="passo">5. Pix</div>
       </div>
-      ${msg ? `<div class="card confirmacao-ok"><div class="icone">✅</div><h2>Agendamento recebido!</h2><p>${esc(msg)}</p><a class="btn btn-primario" href="/agendar" onclick="location.reload()">Fazer outro agendamento</a></div>` : `
+      ${msg ? `<div class="card confirmacao-ok"><div class="icone">✅</div><h2>Agendamento recebido!</h2><p>${esc(msg)}</p><div style="display:flex;gap:10px;justify-content:center;margin-top:20px;"><a class="btn btn-sec" href="/agendar">← Voltar</a><a class="btn btn-primario" href="/agendar" onclick="location.reload()">Fazer outro agendamento</a></div></div>` : `
       <div id="passo-corpo"></div>`}
     </div>
  </div>`;
