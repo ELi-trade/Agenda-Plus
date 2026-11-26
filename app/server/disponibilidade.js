@@ -80,11 +80,11 @@ function slotsDoProfissional(profissionalId, servicoId, data) {
   const conflita = (min, minFim, lista) => lista.some(([i, f]) => min < f && minFim > i);
 
   // Filtro de horário retroativo: se a data for HOJE, descartar slots já passados
-  const hojeBr = new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' });
-  const [hojeData, hojeHora] = hojeBr.split(', ');
-  const [ano, mes, dia] = hojeData.split('/').map(Number);
-  const dataHojeISO = `${ano}-${String(mes).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
-  const minAtual = paraMinutos(hojeHora.trim());
+  const dataHojeISO = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+  const hojeHora = new Date().toLocaleTimeString('en-GB', { timeZone: 'America/Sao_Paulo', hour12: false });
+
+
+  const minAtual = paraMinutos(hojeHora);
   const ehHoje = data === dataHojeISO;
 
   for (const turno of turnos) {
