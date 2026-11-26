@@ -22,6 +22,7 @@ const notif = require('./routes/notificacoes');
 const fin = require('./routes/financeiro');
 const clientesAuth = require('./routes/clientes-auth');
 const adminDados = require('./routes/admin-dados');
+const adminExclusao = require('./routes/admin-exclusao');
 const pagamentosPix = require('./pagamentos');
 
 const PORT = Number(process.env.PORT || 3000);

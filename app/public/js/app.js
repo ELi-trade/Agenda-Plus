@@ -1,4 +1,4 @@
-
+﻿
 // app.js — SPA Agenda (pt-BR)
 import { get, post, put, del, UI, setToken, setClientToken, getCliente, postCliente, postPublico } from './api.js';
 
@@ -1947,3 +1947,22 @@ async function rotear() {
 
 window.addEventListener('hashchange', rotear);
 (async () => { await carregarTemaSalvo(); await rotear(); })();
+
+// Exclusão forçada de agendamento (admin)
+async function excluirAgendamentoForcado(id) {
+  if (!confirm('⚠️ ATENÇÃO: Esta ação irá excluir DEFINITIVAMENTE o agendamento e todo o histórico Pix associado.\n\nDeseja continuar?')) {
+    return;
+  }
+  if (!confirm('🔴 CONFIRMAÇÃO FINAL: Digite OK para confirmar a exclusão permanente.')) {
+    return;
+  }
+  try {
+    await withLoading(async () => {
+      await del(`/api/admin/agendamentos/${id}/forcado`);
+      toast('Agendamento excluído definitivamente', 'ok');
+      location.reload();
+    });
+  } catch (e) {
+    toast(e.message, 'erro');
+  }
+}
