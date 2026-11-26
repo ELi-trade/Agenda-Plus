@@ -1,22 +1,45 @@
 ﻿/* ========================================
-   DESIGN NEON FUTURISTA - ESTILO WELCOME
-   Linhas de luz curvas + glow central
+   DESIGN TECH NEON - CORPORATE FUTURISTA
+   Fundo tecnológico + Rede neon + Foto destaque
    ======================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Orbitron:wght@400;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
 
-/* Fundo escuro com linhas neon curvas */
+/* Fundo tecnológico escuro */
 .pub-body,
-.client-shell {
-  background: #000 !important;
+.client-shell,
+.tela-login,
+.auth-wrap {
+  background: linear-gradient(135deg, #000814 0%, #001d3d 50%, #000814 100%) !important;
   min-height: 100vh;
   position: relative;
   overflow: hidden;
 }
 
-/* Linhas de neon curvas (efeito de luz) */
+/* Grid tecnológico de fundo */
 .pub-body::before,
-.client-shell::before {
+.client-shell::before,
+.tela-login::before,
+.auth-wrap::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    linear-gradient(rgba(0, 177, 197, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 177, 197, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  animation: gridMove 20s linear infinite;
+  z-index: 0;
+}
+
+/* Linhas neon curvas formando rede digital */
+.pub-body::after,
+.client-shell::after,
+.tela-login::after,
+.auth-wrap::after {
   content: '';
   position: fixed;
   top: 0;
@@ -24,40 +47,52 @@
   width: 100%;
   height: 100%;
   background: 
-    radial-gradient(ellipse at center, rgba(0, 177, 197, 0.15) 0%, transparent 70%),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 600'%3E%3Cpath d='M0,300 Q300,100 600,300 T1200,300' fill='none' stroke='%2300b1c5' stroke-width='2' opacity='0.6'/%3E%3Cpath d='M0,300 Q300,500 600,300 T1200,300' fill='none' stroke='%2300b1c5' stroke-width='2' opacity='0.6'/%3E%3C/svg%3E") center/cover no-repeat;
-  animation: neonFlow 8s ease-in-out infinite;
-  z-index: 0;
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 800'%3E%3Ccircle cx='600' cy='400' r='300' fill='none' stroke='%2300b1c5' stroke-width='1' opacity='0.3'/%3E%3Ccircle cx='600' cy='400' r='250' fill='none' stroke='%2300b1c5' stroke-width='1.5' opacity='0.4'/%3E%3Ccircle cx='600' cy='400' r='200' fill='none' stroke='%2300b1c5' stroke-width='2' opacity='0.5'/%3E%3Cpath d='M100,400 Q300,200 600,400 T1100,400' fill='none' stroke='%2300b1c5' stroke-width='2' opacity='0.6'/%3E%3Cpath d='M100,400 Q300,600 600,400 T1100,400' fill='none' stroke='%2300b1c5' stroke-width='2' opacity='0.6'/%3E%3Cpath d='M600,100 Q400,300 600,400 T600,700' fill='none' stroke='%2300b1c5' stroke-width='1.5' opacity='0.5'/%3E%3Cpath d='M600,100 Q800,300 600,400 T600,700' fill='none' stroke='%2300b1c5' stroke-width='1.5' opacity='0.5'/%3E%3C/svg%3E") center/cover no-repeat;
+  animation: neonNetwork 15s ease-in-out infinite;
+  z-index: 1;
+  pointer-events: none;
 }
 
-/* Brilho central difuso */
-.pub-body::after,
-.client-shell::after {
-  content: '';
+/* Brilho central intenso */
+.pub-body .glow-center,
+.client-shell .glow-center,
+.tela-login .glow-center,
+.auth-wrap .glow-center {
   position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 600px;
-  height: 600px;
-  background: radial-gradient(circle, rgba(0, 177, 197, 0.3) 0%, transparent 70%);
-  filter: blur(60px);
-  animation: glowPulse 4s ease-in-out infinite;
+  width: 800px;
+  height: 800px;
+  background: radial-gradient(circle, rgba(0, 177, 197, 0.4) 0%, rgba(0, 177, 197, 0.1) 40%, transparent 70%);
+  filter: blur(80px);
+  animation: intenseGlow 6s ease-in-out infinite;
   z-index: 0;
   pointer-events: none;
 }
 
-@keyframes neonFlow {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+@keyframes gridMove {
+  0% { background-position: 0 0; }
+  100% { background-position: 50px 50px; }
 }
 
-@keyframes glowPulse {
-  0%, 100% { 
+@keyframes neonNetwork {
+  0%, 100% {
+    opacity: 0.6;
+    filter: brightness(1);
+  }
+  50% {
+    opacity: 1;
+    filter: brightness(1.5);
+  }
+}
+
+@keyframes intenseGlow {
+  0%, 100% {
     transform: translate(-50%, -50%) scale(1);
     opacity: 0.6;
   }
-  50% { 
+  50% {
     transform: translate(-50%, -50%) scale(1.2);
     opacity: 1;
   }
@@ -66,17 +101,18 @@
 /* Container principal */
 .pub-container,
 .client-shell main {
-  background: rgba(0, 0, 0, 0.7) !important;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(0, 177, 197, 0.3);
+  background: rgba(0, 29, 61, 0.8) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 2px solid rgba(0, 177, 197, 0.5);
   border-radius: 20px;
   padding: 40px;
   box-shadow: 
-    0 0 50px rgba(0, 177, 197, 0.3),
-    inset 0 0 50px rgba(0, 177, 197, 0.1);
+    0 0 60px rgba(0, 177, 197, 0.5),
+    0 0 120px rgba(0, 177, 197, 0.3),
+    inset 0 0 60px rgba(0, 177, 197, 0.2);
   position: relative;
-  z-index: 1;
+  z-index: 2;
   max-width: 900px;
   margin: 40px auto;
 }
@@ -88,20 +124,20 @@
   justify-content: center !important;
   align-items: center !important;
   text-align: center !important;
-  padding: 20px !important;
-  background: transparent !important;
-  border-bottom: 1px solid rgba(0, 177, 197, 0.3);
+  padding: 24px !important;
+  background: rgba(0, 29, 61, 0.9) !important;
+  border-bottom: 2px solid rgba(0, 177, 197, 0.5);
   position: relative;
-  z-index: 1;
+  z-index: 2;
 }
 
-/* Título com glow neon */
+/* Título com neon intenso */
 .pub-topo .nome,
 .client-shell > header .logo,
 header .logo {
   font-family: 'Orbitron', sans-serif !important;
-  font-size: 32px !important;
-  font-weight: 700 !important;
+  font-size: 36px !important;
+  font-weight: 900 !important;
   letter-spacing: 4px !important;
   color: #fff !important;
   text-transform: uppercase;
@@ -109,24 +145,27 @@ header .logo {
     0 0 10px #00b1c5,
     0 0 20px #00b1c5,
     0 0 40px #00b1c5,
-    0 0 80px #00b1c5;
-  animation: textGlow 3s ease-in-out infinite;
+    0 0 80px #00b1c5,
+    0 0 120px #00b1c5;
+  animation: intenseNeon 2s ease-in-out infinite;
 }
 
-@keyframes textGlow {
+@keyframes intenseNeon {
   0%, 100% {
     text-shadow:
       0 0 10px #00b1c5,
       0 0 20px #00b1c5,
       0 0 40px #00b1c5,
-      0 0 80px #00b1c5;
+      0 0 80px #00b1c5,
+      0 0 120px #00b1c5;
   }
   50% {
     text-shadow:
       0 0 5px #00b1c5,
       0 0 10px #00b1c5,
       0 0 20px #00b1c5,
-      0 0 40px #00b1c5;
+      0 0 40px #00b1c5,
+      0 0 60px #00b1c5;
   }
 }
 
@@ -136,7 +175,7 @@ header .logo {
 .client-shell main h1 {
   font-family: 'Orbitron', sans-serif !important;
   color: #fff !important;
-  font-size: 36px !important;
+  font-size: 32px !important;
   font-weight: 700 !important;
   text-transform: uppercase;
   letter-spacing: 3px;
@@ -150,42 +189,42 @@ header .logo {
 
 /* Cards de serviço */
 .lista-servicos .opcao {
-  background: rgba(0, 177, 197, 0.1) !important;
-  border: 1px solid rgba(0, 177, 197, 0.4);
+  background: rgba(0, 29, 61, 0.6) !important;
+  border: 2px solid rgba(0, 177, 197, 0.5);
   border-radius: 12px;
   padding: 16px;
   margin-bottom: 12px;
   transition: all 0.3s ease;
-  box-shadow: 0 0 20px rgba(0, 177, 197, 0.2);
+  box-shadow: 0 0 30px rgba(0, 177, 197, 0.3);
 }
 
 .lista-servicos .opcao:hover {
   background: rgba(0, 177, 197, 0.2) !important;
   border-color: #00b1c5;
-  box-shadow: 0 0 30px rgba(0, 177, 197, 0.5);
+  box-shadow: 0 0 50px rgba(0, 177, 197, 0.7);
   transform: translateY(-2px);
 }
 
 .lista-servicos .opcao.sel {
   background: rgba(0, 177, 197, 0.3) !important;
   border-color: #00b1c5;
-  box-shadow: 0 0 40px rgba(0, 177, 197, 0.7);
+  box-shadow: 0 0 60px rgba(0, 177, 197, 0.9);
 }
 
 .lista-servicos .opcao b { 
   color: #fff !important; 
   font-size: 16px;
-  text-shadow: 0 0 10px rgba(0, 177, 197, 0.8);
+  text-shadow: 0 0 15px rgba(0, 177, 197, 1);
 }
 
 .lista-servicos .opcao .texto-fraco { 
-  color: rgba(255, 255, 255, 0.8) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
 }
 
 .servico-preco b {
   color: #00b1c5 !important;
   font-size: 18px;
-  text-shadow: 0 0 15px #00b1c5;
+  text-shadow: 0 0 20px #00b1c5;
 }
 
 /* Slots de horário */
@@ -196,29 +235,29 @@ header .logo {
 }
 
 .slot {
-  background: rgba(0, 177, 197, 0.1) !important;
-  border: 1px solid rgba(0, 177, 197, 0.4);
+  background: rgba(0, 29, 61, 0.6) !important;
+  border: 2px solid rgba(0, 177, 197, 0.5);
   border-radius: 10px;
   padding: 12px;
   color: #fff !important;
   font-size: 15px;
   font-weight: 600;
   transition: all 0.3s ease;
-  box-shadow: 0 0 15px rgba(0, 177, 197, 0.2);
-  text-shadow: 0 0 10px rgba(0, 177, 197, 0.8);
+  box-shadow: 0 0 20px rgba(0, 177, 197, 0.3);
+  text-shadow: 0 0 10px rgba(0, 177, 197, 1);
 }
 
 .slot:hover {
   background: rgba(0, 177, 197, 0.2) !important;
   border-color: #00b1c5;
-  box-shadow: 0 0 25px rgba(0, 177, 197, 0.6);
+  box-shadow: 0 0 40px rgba(0, 177, 197, 0.7);
   transform: translateY(-2px);
 }
 
 .slot.sel {
   background: rgba(0, 177, 197, 0.4) !important;
   border-color: #00b1c5;
-  box-shadow: 0 0 35px rgba(0, 177, 197, 0.9);
+  box-shadow: 0 0 50px rgba(0, 177, 197, 1);
   color: #fff !important;
 }
 
@@ -231,13 +270,13 @@ header .logo {
 }
 
 .dia-chip {
-  background: rgba(0, 177, 197, 0.1) !important;
-  border: 1px solid rgba(0, 177, 197, 0.4);
+  background: rgba(0, 29, 61, 0.6) !important;
+  border: 2px solid rgba(0, 177, 197, 0.5);
   border-radius: 12px;
   padding: 10px 8px;
   min-width: 70px;
   transition: all 0.3s ease;
-  box-shadow: 0 0 15px rgba(0, 177, 197, 0.2);
+  box-shadow: 0 0 20px rgba(0, 177, 197, 0.3);
 }
 
 .dia-chip:hover {
@@ -249,7 +288,7 @@ header .logo {
 .dia-chip.sel {
   background: rgba(0, 177, 197, 0.4) !important;
   border-color: #00b1c5;
-  box-shadow: 0 0 25px rgba(0, 177, 197, 0.7);
+  box-shadow: 0 0 40px rgba(0, 177, 197, 0.8);
 }
 
 .dia-chip .d { 
@@ -262,33 +301,33 @@ header .logo {
   color: #fff !important;
   font-weight: 700; 
   font-size: 18px;
-  text-shadow: 0 0 10px #00b1c5;
+  text-shadow: 0 0 15px #00b1c5;
 }
 
-/* Botões */
+/* Botões com neon intenso */
 .btn-primario,
 .btn.btn-primario {
   background: transparent !important;
   border: 2px solid #00b1c5 !important;
   border-radius: 10px;
-  padding: 12px 24px;
+  padding: 14px 28px;
   color: #00b1c5 !important;
   font-family: 'Orbitron', sans-serif !important;
   font-size: 14px !important;
   font-weight: 700 !important;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
   text-transform: uppercase;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 0 20px rgba(0, 177, 197, 0.4);
-  text-shadow: 0 0 10px #00b1c5;
+  box-shadow: 0 0 30px rgba(0, 177, 197, 0.6);
+  text-shadow: 0 0 15px #00b1c5;
 }
 
 .btn-primario:hover,
 .btn.btn-primario:hover {
   background: #00b1c5 !important;
   color: #000 !important;
-  box-shadow: 0 0 40px rgba(0, 177, 197, 0.8);
+  box-shadow: 0 0 60px rgba(0, 177, 197, 1);
   text-shadow: none;
   transform: translateY(-2px);
 }
@@ -296,23 +335,23 @@ header .logo {
 .btn-sec,
 .btn.btn-sec {
   background: transparent !important;
-  border: 1px solid rgba(0, 177, 197, 0.6) !important;
+  border: 2px solid rgba(0, 177, 197, 0.6) !important;
   border-radius: 10px;
-  padding: 10px 20px;
+  padding: 12px 24px;
   color: #00b1c5 !important;
   font-family: 'Orbitron', sans-serif !important;
   font-size: 12px !important;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.3s ease;
-  text-shadow: 0 0 8px rgba(0, 177, 197, 0.6);
+  text-shadow: 0 0 10px rgba(0, 177, 197, 0.8);
 }
 
 .btn-sec:hover,
 .btn.btn-sec:hover {
   background: rgba(0, 177, 197, 0.2) !important;
   border-color: #00b1c5;
-  box-shadow: 0 0 20px rgba(0, 177, 197, 0.5);
+  box-shadow: 0 0 30px rgba(0, 177, 197, 0.7);
 }
 
 /* Formulários */
@@ -322,8 +361,8 @@ header .logo {
 .client-shell main input,
 .client-shell main select,
 .client-shell main textarea {
-  background: rgba(0, 177, 197, 0.1) !important;
-  border: 1px solid rgba(0, 177, 197, 0.4);
+  background: rgba(0, 29, 61, 0.6) !important;
+  border: 2px solid rgba(0, 177, 197, 0.5);
   border-radius: 10px;
   padding: 12px;
   color: #fff !important;
@@ -339,24 +378,24 @@ header .logo {
 .client-shell main textarea:focus {
   background: rgba(0, 177, 197, 0.2) !important;
   border-color: #00b1c5 !important;
-  box-shadow: 0 0 20px rgba(0, 177, 197, 0.6);
+  box-shadow: 0 0 30px rgba(0, 177, 197, 0.8);
   outline: none;
 }
 
 .pub-container label,
 .client-shell main label {
-  color: rgba(255, 255, 255, 0.9) !important;
+  color: rgba(255, 255, 255, 0.95) !important;
   font-size: 14px;
   margin-bottom: 6px;
 }
 
 /* Categorias de serviço */
 .servicos-categoria {
-  background: rgba(0, 177, 197, 0.1) !important;
-  border: 1px solid rgba(0, 177, 197, 0.4);
+  background: rgba(0, 29, 61, 0.6) !important;
+  border: 2px solid rgba(0, 177, 197, 0.5);
   border-radius: 12px;
   margin-bottom: 12px;
-  box-shadow: 0 0 20px rgba(0, 177, 197, 0.2);
+  box-shadow: 0 0 30px rgba(0, 177, 197, 0.3);
 }
 
 .servicos-categoria > summary { 
@@ -367,7 +406,7 @@ header .logo {
 .servicos-categoria > summary > span { 
   font-size: 16px; 
   font-weight: 600;
-  text-shadow: 0 0 10px rgba(0, 177, 197, 0.8);
+  text-shadow: 0 0 15px rgba(0, 177, 197, 1);
 }
 
 /* Cards brancos internos (Pix, tabelas) */
@@ -380,7 +419,7 @@ header .logo {
   background: rgba(255, 255, 255, 0.95) !important;
   border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 0 30px rgba(0, 177, 197, 0.3);
+  box-shadow: 0 0 40px rgba(0, 177, 197, 0.4);
 }
 
 .pub-container .card *,
@@ -405,17 +444,17 @@ header .logo {
 
 /* Confirmação de sucesso */
 .confirmacao-ok {
-  background: rgba(0, 177, 197, 0.2) !important;
-  border: 1px solid rgba(0, 177, 197, 0.5);
+  background: rgba(0, 177, 197, 0.3) !important;
+  border: 2px solid rgba(0, 177, 197, 0.7);
   border-radius: 16px;
   padding: 40px 30px;
-  box-shadow: 0 0 50px rgba(0, 177, 197, 0.5);
+  box-shadow: 0 0 80px rgba(0, 177, 197, 0.8);
 }
 
 .confirmacao-ok .icone {
   font-size: 56px;
   color: #00b1c5 !important;
-  text-shadow: 0 0 30px #00b1c5;
+  text-shadow: 0 0 40px #00b1c5;
   animation: pulse 2s ease-in-out infinite;
 }
 
@@ -428,11 +467,11 @@ header .logo {
   color: #fff !important;
   font-size: 26px; 
   margin: 16px 0;
-  text-shadow: 0 0 20px #00b1c5;
+  text-shadow: 0 0 30px #00b1c5;
 }
 
 .confirmacao-ok p { 
-  color: rgba(255, 255, 255, 0.9) !important;
+  color: rgba(255, 255, 255, 0.95) !important;
   font-size: 16px;
 }
 
@@ -458,110 +497,12 @@ header .logo {
   background: rgba(0, 177, 197, 0.1) !important;
 }
 
-/* Animação de entrada */
-.pub-container,
-.client-shell main {
-  animation: fadeInUp 0.6s ease-out;
-}
-
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(30px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* Responsivo */
-@media (max-width: 760px) {
-  .pub-container,
-  .client-shell main {
-    padding: 20px;
-    margin: 20px;
-  }
-  
-  .pub-container h2,
-  .client-shell main h2,
-  .client-shell main h1 {
-    font-size: 28px;
-  }
-  
-  .pub-topo .nome,
-  .client-shell > header .logo {
-    font-size: 24px !important;
-  }
-  
-  .slots {
-    grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
-    gap: 8px;
-  }
-  
-  .slot {
-    padding: 10px;
-    font-size: 14px;
-  }
-}
-
-
-/* ========================================
-   LAYOUT SPLIT - LOGIN (CORRIGIDO)
-   Foto completa + Efeito neon infinito Interstellar
-   ======================================== */
-
-/* Tela de login dividida */
+/* Layout split para login */
 .tela-login,
 .auth-wrap {
   display: flex !important;
   min-height: 100vh;
   padding: 0 !important;
-  background: #000 !important;
-  overflow: hidden;
-}
-
-/* Metade esquerda - Foto COMPLETA com efeito neon infinito */
-.tela-login::before,
-.auth-wrap::before {
-  content: '';
-  position: fixed;
-  left: 0;
-  top: 0;
-  width: 50%;
-  height: 100%;
-  background: 
-    linear-gradient(135deg, rgba(0, 0, 0, 0.2), rgba(0, 177, 197, 0.05)),
-    url('/images/capa.jpg') center center no-repeat;
-  background-size: contain !important;
-  z-index: 0;
-}
-
-/* Múltiplas linhas neon curvas animadas (efeito Interstellar) */
-.tela-login::after,
-.auth-wrap::after {
-  content: '';
-  position: fixed;
-  left: 0;
-  top: 0;
-  width: 50%;
-  height: 100%;
-  background: 
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 600' preserveAspectRatio='none'%3E%3Cpath d='M-100,300 Q200,100 500,300 T1100,300' fill='none' stroke='%2300b1c5' stroke-width='1.5' opacity='0.4'/%3E%3Cpath d='M-100,300 Q200,500 500,300 T1100,300' fill='none' stroke='%2300b1c5' stroke-width='1.5' opacity='0.4'/%3E%3Cpath d='M-100,250 Q200,50 500,250 T1100,250' fill='none' stroke='%2300b1c5' stroke-width='1' opacity='0.3'/%3E%3Cpath d='M-100,350 Q200,550 500,350 T1100,350' fill='none' stroke='%2300b1c5' stroke-width='1' opacity='0.3'/%3E%3C/svg%3E") center/cover no-repeat;
-  animation: interstellarFlow 12s linear infinite;
-  z-index: 1;
-  pointer-events: none;
-}
-
-/* Brilho pulsante no centro da foto */
-.tela-login .caixa-login::before,
-.auth-wrap .auth-card::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 300px;
-  height: 300px;
-  background: radial-gradient(circle, rgba(0, 177, 197, 0.2) 0%, transparent 70%);
-  filter: blur(40px);
-  animation: glowPulse 4s ease-in-out infinite;
-  z-index: -1;
-  pointer-events: none;
 }
 
 /* Card de login */
@@ -575,14 +516,31 @@ header .logo {
   margin-bottom: auto;
   background: rgba(255, 255, 255, 0.95) !important;
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(0, 177, 197, 0.3);
+  border: 2px solid rgba(0, 177, 197, 0.5);
   border-radius: 16px;
   padding: 40px;
   box-shadow: 
-    0 0 50px rgba(0, 177, 197, 0.3),
-    inset 0 0 50px rgba(0, 177, 197, 0.1);
+    0 0 60px rgba(0, 177, 197, 0.5),
+    0 0 120px rgba(0, 177, 197, 0.3),
+    inset 0 0 60px rgba(0, 177, 197, 0.2);
+  animation: energyPulse 4s ease-in-out infinite;
   max-width: 450px;
   width: 40%;
+}
+
+@keyframes energyPulse {
+  0%, 100% {
+    box-shadow: 
+      0 0 60px rgba(0, 177, 197, 0.5),
+      0 0 120px rgba(0, 177, 197, 0.3),
+      inset 0 0 60px rgba(0, 177, 197, 0.2);
+  }
+  50% {
+    box-shadow: 
+      0 0 100px rgba(0, 177, 197, 0.8),
+      0 0 180px rgba(0, 177, 197, 0.5),
+      inset 0 0 100px rgba(0, 177, 197, 0.3);
+  }
 }
 
 /* Título do login */
@@ -606,15 +564,15 @@ header .logo {
   font-size: 24px !important;
   font-weight: 700 !important;
   letter-spacing: 2px;
-  text-shadow: 0 0 10px rgba(0, 177, 197, 0.5);
+  text-shadow: 0 0 20px rgba(0, 177, 197, 0.8);
   margin-bottom: 20px;
 }
 
-/* Formulário */
+/* Formulário de login */
 .tela-login .caixa-login input,
 .auth-wrap .auth-card input {
   background: rgba(0, 177, 197, 0.05) !important;
-  border: 1px solid rgba(0, 177, 197, 0.3);
+  border: 2px solid rgba(0, 177, 197, 0.5);
   border-radius: 8px;
   padding: 12px;
   color: #000 !important;
@@ -626,7 +584,7 @@ header .logo {
 .auth-wrap .auth-card input:focus {
   background: rgba(0, 177, 197, 0.1) !important;
   border-color: #00b1c5 !important;
-  box-shadow: 0 0 15px rgba(0, 177, 197, 0.4);
+  box-shadow: 0 0 25px rgba(0, 177, 197, 0.6);
   outline: none;
 }
 
@@ -654,8 +612,8 @@ header .logo {
   text-transform: uppercase;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 0 20px rgba(0, 177, 197, 0.4);
-  text-shadow: 0 0 10px rgba(0, 177, 197, 0.8);
+  box-shadow: 0 0 30px rgba(0, 177, 197, 0.6);
+  text-shadow: 0 0 15px #00b1c5;
   width: 100%;
   margin-top: 10px;
 }
@@ -664,7 +622,7 @@ header .logo {
 .auth-wrap .auth-card .btn-primario:hover {
   background: #00b1c5 !important;
   color: #fff !important;
-  box-shadow: 0 0 40px rgba(0, 177, 197, 0.8);
+  box-shadow: 0 0 60px rgba(0, 177, 197, 1);
   text-shadow: none;
 }
 
@@ -686,19 +644,30 @@ header .logo {
 .tela-login .caixa-login .auth-links a:hover,
 .auth-wrap .auth-card .auth-links a:hover {
   color: #008c9c !important;
-  text-shadow: 0 0 10px rgba(0, 177, 197, 0.5);
+  text-shadow: 0 0 15px rgba(0, 177, 197, 0.8);
 }
 
 /* Caixa demo */
 .tela-login .caixa-demo,
 .auth-wrap .caixa-demo {
   background: rgba(0, 177, 197, 0.1) !important;
-  border: 1px solid rgba(0, 177, 197, 0.3);
+  border: 2px solid rgba(0, 177, 197, 0.5);
   border-radius: 8px;
   padding: 12px;
   margin-top: 16px;
   color: #1c2430 !important;
   text-shadow: none !important;
+}
+
+/* Animação de entrada */
+.pub-container,
+.client-shell main {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Responsivo */
@@ -708,186 +677,36 @@ header .logo {
     flex-direction: column;
   }
   
-  .tela-login::before,
-  .auth-wrap::before,
-  .tela-login::after,
-  .auth-wrap::after {
-    width: 100%;
-    height: 40%;
-  }
-  
   .tela-login .caixa-login,
   .auth-wrap .auth-card {
     width: 90%;
     margin: 20px auto;
   }
-}
-/* ========================================
-   EFEITOS NEON DINÂMICOS - RAIOS VIVOS
-   ======================================== */
-
-/* Container para os efeitos de luz */
-.tela-login,
-.auth-wrap {
-  position: relative;
-  overflow: hidden;
-}
-
-/* Raios de luz que cruzam a tela */
-.tela-login::before,
-.auth-wrap::before {
-  content: '';
-  position: fixed;
-  left: 0;
-  top: 0;
-  width: 50%;
-  height: 100%;
-  background: 
-    linear-gradient(135deg, rgba(0, 0, 0, 0.3), rgba(0, 177, 197, 0.05)),
-    url('/images/capa.jpg') center center no-repeat;
-  background-size: contain !important;
-  z-index: 0;
-}
-
-/* Linhas de energia animadas */
-.tela-login::after,
-.auth-wrap::after {
-  content: '';
-  position: fixed;
-  left: 0;
-  top: 0;
-  width: 50%;
-  height: 100%;
-  background: 
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 600' preserveAspectRatio='none'%3E%3Cpath d='M-100,300 Q200,100 500,300 T1100,300' fill='none' stroke='%2300b1c5' stroke-width='2' opacity='0.6'/%3E%3Cpath d='M-100,300 Q200,500 500,300 T1100,300' fill='none' stroke='%2300b1c5' stroke-width='2' opacity='0.6'/%3E%3C/svg%3E") center/cover no-repeat;
-  animation: energyFlow 6s linear infinite;
-  z-index: 1;
-  pointer-events: none;
-}
-
-/* Raios de luz que cruzam diagonalmente */
-.tela-login .caixa-login::before,
-.auth-wrap .auth-card::before {
-  content: '';
-  position: fixed;
-  left: 0;
-  top: 0;
-  width: 50%;
-  height: 100%;
-  background: 
-    linear-gradient(45deg, transparent 40%, rgba(0, 177, 197, 0.3) 45%, transparent 50%),
-    linear-gradient(-45deg, transparent 40%, rgba(214, 75, 134, 0.3) 45%, transparent 50%);
-  animation: lightningStrike 3s ease-in-out infinite;
-  z-index: 1;
-  pointer-events: none;
-}
-
-/* Partículas de luz flutuantes */
-.tela-login .caixa-login::after,
-.auth-wrap .auth-card::after {
-  content: '';
-  position: fixed;
-  left: 0;
-  top: 0;
-  width: 50%;
-  height: 100%;
-  background: 
-    radial-gradient(circle at 20% 30%, rgba(0, 177, 197, 0.4) 0%, transparent 50%),
-    radial-gradient(circle at 80% 70%, rgba(214, 75, 134, 0.4) 0%, transparent 50%),
-    radial-gradient(circle at 50% 50%, rgba(0, 177, 197, 0.3) 0%, transparent 40%);
-  animation: particlesFloat 8s ease-in-out infinite;
-  z-index: 1;
-  pointer-events: none;
-}
-
-@keyframes energyFlow {
-  0% {
-    background-position: 0% 0%;
-    opacity: 0.4;
-    filter: brightness(0.8);
+  
+  .pub-container,
+  .client-shell main {
+    padding: 20px;
+    margin: 20px;
   }
-  25% {
-    opacity: 0.8;
-    filter: brightness(1.2);
+  
+  .pub-container h2,
+  .client-shell main h2,
+  .client-shell main h1 {
+    font-size: 24px;
   }
-  50% {
-    background-position: 100% 50%;
-    opacity: 1;
-    filter: brightness(1.5);
+  
+  .pub-topo .nome,
+  .client-shell > header .logo {
+    font-size: 24px !important;
   }
-  75% {
-    opacity: 0.8;
-    filter: brightness(1.2);
+  
+  .slots {
+    grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
+    gap: 8px;
   }
-  100% {
-    background-position: 200% 100%;
-    opacity: 0.4;
-    filter: brightness(0.8);
+  
+  .slot {
+    padding: 10px;
+    font-size: 14px;
   }
-}
-
-@keyframes lightningStrike {
-  0%, 90%, 100% {
-    opacity: 0;
-  }
-  92%, 96% {
-    opacity: 1;
-    filter: brightness(2);
-  }
-  94% {
-    opacity: 0.5;
-  }
-}
-
-@keyframes particlesFloat {
-  0%, 100% {
-    transform: translate(0, 0) scale(1);
-    opacity: 0.5;
-  }
-  25% {
-    transform: translate(20px, -30px) scale(1.1);
-    opacity: 0.8;
-  }
-  50% {
-    transform: translate(-10px, -50px) scale(1.2);
-    opacity: 1;
-  }
-  75% {
-    transform: translate(30px, -20px) scale(1.1);
-    opacity: 0.8;
-  }
-}
-
-/* Flash de energia pulsante */
-@keyframes energyPulse {
-  0%, 100% {
-    box-shadow: 
-      0 0 50px rgba(0, 177, 197, 0.3),
-      inset 0 0 50px rgba(0, 177, 197, 0.1);
-  }
-  50% {
-    box-shadow: 
-      0 0 80px rgba(0, 177, 197, 0.6),
-      0 0 120px rgba(0, 177, 197, 0.3),
-      inset 0 0 80px rgba(0, 177, 197, 0.2);
-  }
-}
-
-/* Card de login com animação de energia */
-.tela-login .caixa-login,
-.auth-wrap .auth-card {
-  position: relative;
-  z-index: 2;
-  margin-left: auto;
-  margin-right: 10%;
-  margin-top: auto;
-  margin-bottom: auto;
-  background: rgba(255, 255, 255, 0.95) !important;
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(0, 177, 197, 0.3);
-  border-radius: 16px;
-  padding: 40px;
-  animation: energyPulse 4s ease-in-out infinite;
-  max-width: 450px;
-  width: 40%;
 }
