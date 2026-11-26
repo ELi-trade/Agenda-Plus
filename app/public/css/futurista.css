@@ -511,120 +511,6 @@
   }
 }
 
-/* ========================================
-   TIPOGRAFIA NEON + PULSE - Header público
-   ======================================== */
-
-/* Importar fonte elegante */
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Playfair+Display:wght@400;700;900&display=swap');
-
-/* Título do header público (Studio Janine Paranhos) */
-.pub-topo .nome,
-.client-shell > header .logo,
-header .logo {
-  font-family: 'Cinzel', 'Playfair Display', serif !important;
-  font-size: 26px !important;
-  font-weight: 700 !important;
-  letter-spacing: 2px !important;
-  color: #fff !important;
-  text-transform: uppercase;
-  position: relative;
-  animation: neonPulse 3s ease-in-out infinite;
-  text-shadow:
-    0 0 7px #fff,
-    0 0 10px #fff,
-    0 0 21px #fff,
-    0 0 42px #00b1c5,
-    0 0 82px #00b1c5,
-    0 0 92px #00b1c5,
-    0 0 102px #00b1c5,
-    0 0 151px #00b1c5;
-}
-
-/* Emoji/ícone ao lado do nome */
-.pub-topo .nome::before,
-header .logo::before {
-  content: '👑 ';
-  filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.8));
-  animation: crownGlow 2s ease-in-out infinite;
-}
-
-/* Animação de pulsação neon */
-@keyframes neonPulse {
-  0%, 100% {
-    text-shadow:
-      0 0 7px #fff,
-      0 0 10px #fff,
-      0 0 21px #fff,
-      0 0 42px #00b1c5,
-      0 0 82px #00b1c5,
-      0 0 92px #00b1c5,
-      0 0 102px #00b1c5,
-      0 0 151px #00b1c5;
-    filter: brightness(1);
-  }
-  50% {
-    text-shadow:
-      0 0 4px #fff,
-      0 0 7px #fff,
-      0 0 13px #fff,
-      0 0 25px #00b1c5,
-      0 0 50px #00b1c5,
-      0 0 60px #00b1c5,
-      0 0 70px #00b1c5,
-      0 0 100px #00b1c5;
-    filter: brightness(0.85);
-  }
-}
-
-/* Animação da coroa */
-@keyframes crownGlow {
-  0%, 100% { 
-    filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.8));
-    transform: scale(1);
-  }
-  50% { 
-    filter: drop-shadow(0 0 15px rgba(255, 215, 0, 1));
-    transform: scale(1.1);
-  }
-}
-
-/* Subtítulo "Studio" em destaque dourado */
-.pub-topo .nome {
-  background: linear-gradient(135deg, #ffd700 0%, #fff 50%, #ffd700 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: neonPulse 3s ease-in-out infinite, shimmer 4s linear infinite;
-  background-size: 200% auto;
-}
-
-@keyframes shimmer {
-  0% { background-position: 0% center; }
-  100% { background-position: 200% center; }
-}
-
-/* Botão "Entrar" no header com efeito neon */
-.pub-topo .btn-sec,
-.client-shell > header .btn-sec {
-  border: 1px solid #00b1c5 !important;
-  color: #00b1c5 !important;
-  text-shadow: 0 0 10px rgba(0, 177, 197, 0.8);
-  box-shadow: 0 0 15px rgba(0, 177, 197, 0.4), inset 0 0 10px rgba(0, 177, 197, 0.2);
-  transition: all 0.3s ease;
-  font-family: 'Cinzel', serif !important;
-  letter-spacing: 1px;
-}
-
-.pub-topo .btn-sec:hover,
-.client-shell > header .btn-sec:hover {
-  background: #00b1c5 !important;
-  color: #fff !important;
-  box-shadow: 0 0 25px rgba(0, 177, 197, 0.8), inset 0 0 15px rgba(255, 255, 255, 0.3);
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
-}
-
-/* Logo "Agenda+" quando aparece no lugar do Studio */
 .pub-topo .logo-agenda,
 header a[href="/"] {
   font-family: 'Cinzel', serif !important;
@@ -634,4 +520,93 @@ header a[href="/"] {
     0 0 20px #00b1c5,
     0 0 40px #00b1c5;
   animation: neonPulse 3s ease-in-out infinite;
+}
+
+/* ========================================
+   TIPOGRAFIA NEON + PULSE - CORRIGIDO
+   Centralizado, legível, sem blur excessivo
+   ======================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&display=swap');
+
+/* Header público centralizado */
+.pub-topo,
+.client-shell > header {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  text-align: center !important;
+  padding: 18px 20px !important;
+}
+
+/* Título do header - Studio Janine Paranhos */
+.pub-topo .nome,
+.client-shell > header .logo,
+header .logo {
+  font-family: 'Cinzel', serif !important;
+  font-size: 28px !important;
+  font-weight: 700 !important;
+  letter-spacing: 3px !important;
+  color: #fff !important;
+  text-transform: uppercase;
+  text-align: center !important;
+  margin: 0 auto !important;
+  /* Neon sutil - apenas 2 camadas para não borrar */
+  text-shadow:
+    0 0 10px rgba(0, 177, 197, 0.8),
+    0 0 20px rgba(0, 177, 197, 0.5);
+  animation: neonPulse 3s ease-in-out infinite;
+}
+
+/* Animação de pulsação suave */
+@keyframes neonPulse {
+  0%, 100% {
+    text-shadow:
+      0 0 10px rgba(0, 177, 197, 0.8),
+      0 0 20px rgba(0, 177, 197, 0.5);
+    filter: brightness(1);
+  }
+  50% {
+    text-shadow:
+      0 0 5px rgba(0, 177, 197, 0.6),
+      0 0 10px rgba(0, 177, 197, 0.3);
+    filter: brightness(0.9);
+  }
+}
+
+/* Logo "Agenda+" quando aparece */
+.pub-topo a[href="/"],
+header a[href="/"] {
+  font-family: 'Cinzel', serif !important;
+  color: #fff !important;
+  text-decoration: none !important;
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  letter-spacing: 2px !important;
+  text-shadow:
+    0 0 10px rgba(0, 177, 197, 0.8),
+    0 0 20px rgba(0, 177, 197, 0.5);
+  animation: neonPulse 3s ease-in-out infinite;
+}
+
+/* Botão "Entrar" no header */
+.pub-topo .btn-sec,
+.client-shell > header .btn-sec {
+  position: absolute !important;
+  right: 20px !important;
+  border: 1px solid #00b1c5 !important;
+  color: #00b1c5 !important;
+  text-shadow: 0 0 8px rgba(0, 177, 197, 0.6);
+  box-shadow: 0 0 10px rgba(0, 177, 197, 0.3);
+  transition: all 0.3s ease;
+  font-family: 'Cinzel', serif !important;
+  letter-spacing: 1px;
+}
+
+.pub-topo .btn-sec:hover,
+.client-shell > header .btn-sec:hover {
+  background: #00b1c5 !important;
+  color: #fff !important;
+  box-shadow: 0 0 20px rgba(0, 177, 197, 0.6);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
 }
