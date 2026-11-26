@@ -135,6 +135,7 @@ function confirmarPagamentoManual(agendamentoId, usuarioId) {
   if (!alterado.changes) throw new Error('O pagamento já foi conferido por outro usuário.');
   db.prepare("UPDATE agendamentos SET pagamento_status='pago', pagamento_expira_em=NULL, atualizado_em=datetime('now') WHERE id=?")
     .run(agendamentoId);
+  registrarReceita(agendamentoId, pagamento.valor_sinal_centavos, 'Sinal Pix - ' + (pagamento.txid || ''), 'sinal');
   const ag = db.prepare("SELECT a.*, c.nome AS cliente, c.telefone, c.email, s.nome AS servico FROM agendamentos a JOIN clientes c ON c.id=a.cliente_id JOIN servicos s ON s.id=a.servico_id WHERE a.id=?")
     .get(agendamentoId);
   if (ag) {
@@ -142,6 +143,18 @@ function confirmarPagamentoManual(agendamentoId, usuarioId) {
     criarNotificacao(ag, 'confirmacao', 'whatsapp');
   }
   return db.prepare('SELECT * FROM pix_pagamentos WHERE id=?').get(pagamento.id);
+}
+
+function registrarReceita(agendamentoId, valorCentavos, descricao, categoria) {
+  if (!valorCentavos || valorCentavos <= 0) return;
+  const marca = 'AGEND:' + agendamentoId + ':' + categoria;
+  if (db.prepare('SELECT id FROM lancamentos_financeiros WHERE observacoes = ?').get(marca)) return;
+  const ag = db.prepare('SELECT cliente_id FROM agendamentos WHERE id=?').get(agendamentoId);
+  const hoje = new Date().toISOString().slice(0, 10);
+  db.prepare(`INSERT INTO lancamentos_financeiros
+    (tipo, descricao, valor_centavos, vencimento, data_pagamento, status, cliente_id, categoria, observacoes)
+    VALUES ('receber', ?, ?, ?, ?, 'realizado', ?, ?, ?)`)
+    .run(descricao, Math.round(valorCentavos), hoje, hoje, ag ? ag.cliente_id : null, categoria, marca);
 }
 
 async function solicitarReembolso(pagamento, valorCentavos, observacao) {
@@ -254,5 +267,5 @@ async function despachar(req, res, pathname) {
 module.exports = {
   criarPagamento, consultarPagamentoPublico, expirarPendentes, informarPagamento,
   confirmarPagamentoManual, listarDevolucoesManuais, confirmarDevolucaoManual,
-  cancelarCliente, cancelarAdmin, solicitarReembolso, despachar,
+  cancelarCliente, cancelarAdmin, solicitarReembolso, despachar, registrarReceita,
 };

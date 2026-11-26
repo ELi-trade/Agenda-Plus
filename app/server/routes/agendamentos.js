@@ -193,6 +193,13 @@ async function alterarStatus(req, res, usuario, id) {
   const ag = db.prepare('SELECT a.*, c.nome AS cliente, s.nome AS servico FROM agendamentos a JOIN clientes c ON c.id=a.cliente_id JOIN servicos s ON s.id=a.servico_id WHERE a.id=?').get(id);
   if (c.status === 'confirmado') criarNotificacao(ag, 'confirmacao');
   if (c.status === 'cancelado') criarNotificacao(ag, 'cancelamento');
+  if (c.status === 'finalizado') {
+    const pag = atual.origem === 'online' ? db.prepare('SELECT * FROM pix_pagamentos WHERE agendamento_id=?').get(id) : null;
+    const totalC = pag ? pag.valor_total_centavos : db.prepare('SELECT s.preco_centavos AS v FROM agendamentos a JOIN servicos s ON s.id=a.servico_id WHERE a.id=?').get(id).v;
+    const sinalC = pag ? pag.valor_sinal_centavos : 0;
+    pagamentosPix.registrarReceita(id, totalC - sinalC, 'Restante - ' + ag.servico, 'restante');
+    if (!pag) pagamentosPix.registrarReceita(id, totalC, 'Atendimento - ' + ag.servico, 'sinal');
+  }
   json(res, 200, { ok: true, status: c.status, aviso });
 }
 async function excluirAgendamento(req, res, _u, id) {
