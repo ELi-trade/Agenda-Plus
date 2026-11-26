@@ -1650,6 +1650,18 @@ async function renderPublico(msg) {
     </div>
  </div>`;
   if (msg) return;
+
+  // Botão Voltar global na página pública
+  const btnVoltarExistente = document.getElementById('btn-voltar-global');
+  if (!btnVoltarExistente && p.passo > 1) {
+    const btnVoltar = document.createElement('button');
+    btnVoltar.id = 'btn-voltar-global';
+    btnVoltar.className = 'btn btn-sec';
+    btnVoltar.textContent = '← Voltar';
+    btnVoltar.style.cssText = 'position:fixed;top:80px;left:20px;z-index:100;padding:10px 18px;';
+    btnVoltar.onclick = () => { p.passo = Math.max(1, p.passo - 1); renderPublico(); };
+    document.body.appendChild(btnVoltar);
+  }
   const corpo = $('#passo-corpo');
 
   if (p.passo === 1) {
