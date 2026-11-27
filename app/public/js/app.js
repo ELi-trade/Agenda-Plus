@@ -1043,6 +1043,8 @@ async function modalLancamento(tipo, item = null) {
     });
   };
 }
+function telParaWhats(tel){ if(!tel) return null; var n=String(tel).replace(/\D/g,""); if(n.length===11&&n[0]!=="5")n="55"+n; else if(n.length===10&&n[0]!=="5")n="55"+n; return n; }
+function linkWhats(tel){ var n=telParaWhats(tel); if(!n) return esc(tel); return "<a href=\"https://wa.me/"+n+"\" target=\"_blank\" rel=\"noopener\" class=\"tel-whats\" title=\"Abrir conversa no WhatsApp\">"+esc(tel)+" \uD83D\uDCAC</a>"; }
 // ==================== CLIENTES ====================
 async function paginaClientes(params = {}) {
   layout(`
@@ -1062,7 +1064,7 @@ async function paginaClientes(params = {}) {
       ${lista.map((c) => `
         <tr>
           <td><b>${esc(c.nome)}</b>${c.observacoes ? `<div class="texto-fraco">${esc(c.observacoes)}</div>` : ''}</td>
-          <td>${esc(c.telefone || '—')}</td><td>${esc(c.email || '—')}</td>
+          <td>${c.telefone ? linkWhats(c.telefone) : '\u2014'}</td><td>${esc(c.email || '—')}</td>
           <td>${c.total_agendamentos}${c.total_agendamentos >= 3 ? ' ⭐' : ''}</td>
           <td class="cel-acoes">
             <button class="btn mini btn-sec" data-hist="${c.id}">Histórico</button>

@@ -983,3 +983,6 @@ header .logo {
   color: #1c2430 !important;
   text-shadow: none !important;
 }
+
+a.tel-whats{color:#25D366!important;text-decoration:none!important;font-weight:600;transition:all .2s ease;}
+a.tel-whats:hover{color:#128C7E!important;text-decoration:underline!important;}
