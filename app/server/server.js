@@ -101,7 +101,6 @@ async function tratarAPI(req, res, pathname, usuario) {
   if (recurso === 'usuarios') {
     if (metodo === 'GET' && !id) return auth.listarUsuarios(req, res, usuario);
     if ((metodo === 'POST' || metodo === 'PUT') && !id) return auth.salvarUsuario(req, res, usuario);
-    if (metodo === 'DELETE' && id) return auth.excluirUsuario(req, res, usuario, id);
     return erro(res, 404, 'Rota não encontrada');
   }
 

@@ -1090,14 +1090,7 @@ async function paginaClientes(params = {}) {
       `);
     });
     $$('#tab-cli [data-editar]').forEach((b) => b.onclick = () => modalCliente(lista.find((x) => x.id == b.dataset.editar)));
-        $('#tab-cli [data-excluir-definitivo]').forEach((b) => b.onclick = async () => {
-      if (!confirmar('Excluir este cliente PERMANENTEMENTE?')) return;
-      await withLoading(async () => {
-        try { await del('/api/clientes/' + b.dataset.excluirDefinitivo); toast('Cliente excluído', 'ok'); carregar(busca); }
-        catch (e) { toast(e.message || 'Erro ao excluir', 'erro'); }
-      });
-    });
-    $('#tab-cli [data-excluir]').forEach((b) => b.onclick = async () => {
+    $$('#tab-cli [data-excluir]').forEach((b) => b.onclick = async () => {
       if (!confirmar('Inativar este cliente? O histórico será mantido.')) return;
       await withLoading(async () => { await del(`/api/clientes/${b.dataset.excluir}`); toast('Cliente inativado', 'ok'); carregar(busca); });
     });
@@ -1369,13 +1362,6 @@ async function paginaSalas() {
         <td>${s.ativa ? '<span class="tag st-confirmado">Ativa</span>' : '<span class="tag st-cancelado">Inativa</span>'}</td></tr>`).join('')}
       </tbody></table></div></div>
   `, 'salas');
-    $('#tab-usu [data-excluir-usuario]').forEach((b) => b.onclick = async () => {
-    if (!confirmar('Excluir este usuário permanentemente?')) return;
-    await withLoading(async () => {
-      try { await del('/api/usuarios/' + b.dataset.excluirUsuario); toast('Usuário excluído', 'ok'); location.reload(); }
-      catch (e) { toast(e.message || 'Erro ao excluir', 'erro'); }
-    });
-  });
   $('#btn-novo').onclick = () => {
     const m = UI.modal(`<h2>Nova sala</h2><form id="f">
       <label>Nome *<input name="nome" required></label>
