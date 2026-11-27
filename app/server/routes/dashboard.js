@@ -82,27 +82,8 @@ async function dashboard(req, res, usuario) {
     clientes_ativos: um('SELECT COUNT(*) AS n FROM clientes WHERE ativo = 1'),
     profissionais_ativos: um('SELECT COUNT(*) AS n FROM profissionais WHERE ativo = 1'),
   };
-    // Valores pendentes de recebimento (agendamentos finalizados com sinal pago)
-  const pendentes = db.prepare(\
-    SELECT a.id, a.data, a.hora_inicio, c.nome AS cliente, s.nome AS servico,
-           a.valor_final_centavos, pp.valor_sinal_centavos,
-           (a.valor_final_centavos - pp.valor_sinal_centavos) AS pendente_centavos
-    FROM agendamentos a
-    JOIN clientes c ON c.id = a.cliente_id
-    JOIN servicos s ON s.id = a.servico_id
-    JOIN pix_pagamentos pp ON pp.agendamento_id = a.id
-    WHERE a.status IN ('finalizado', 'em_atendimento')
-      AND pp.status = 'pago'
-      AND a.valor_final_centavos > pp.valor_sinal_centavos
-    ORDER BY a.data, a.hora_inicio
-  \).all();
-  
-  const totalPendenteCentavos = pendentes.reduce((sum, p) => sum + p.pendente_centavos, 0);
-  
   const financeiro = temPermissao(usuario, 'financeiro') ? resumoFinanceiro(inicioMes, fimMes, hoje) : null;
   json(res, 200, {
-    pendentes,
-    total_pendente_centavos: totalPendenteCentavos,
     hoje, mes, resumo, financeiro, agendamentos_hoje: deHoje, proximos,
     agendamentos_mes: agendamentosMes, aniversariantes: aniversariantesProximos(hoje),
   });
