@@ -45,10 +45,10 @@ function detalhesCheckout(row, incluirQr = false) {
   };
 }
 
-async function criarPagamento({ agendamentoId, servico }) {
+async function criarPagamento({ agendamentoId, servico, valorFinalCentavos }) {
   const recebedor = dadosRecebedor();
   if (!recebedor.chave) throw new Error('Cadastre a chave Pix do estabelecimento no arquivo .env.');
-  const valorTotal = Number(servico.preco_centavos);
+  const valorTotal = Number(valorFinalCentavos ?? servico.preco_centavos);
   const valorSinal = Math.round(valorTotal / 2);
   if (!Number.isSafeInteger(valorTotal) || valorTotal <= 0 || valorSinal <= 0) {
     throw new Error('Este serviço precisa ter um preço maior que zero para receber agendamentos online.');
