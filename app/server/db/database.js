@@ -10,20 +10,31 @@ fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 
 const db = new DatabaseSync(DB_PATH);
 db.exec('PRAGMA foreign_keys = ON;');
-db.exec(fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8'));
+
+// node:sqlite não expõe .transaction() — helper com BEGIN/COMMIT/ROLLBACK.
+db.transaction = (fn) => (...args) => {
+  db.exec('BEGIN');
+  try { const r = fn(...args); db.exec('COMMIT'); return r; }
+  catch (e) { try { db.exec('ROLLBACK'); } catch { } throw e; }
+};
+const schemaAgendamentos = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
+db.exec(schemaAgendamentos);
 
 // Migra dados existentes sem recriar o arquivo SQLite.
-const colunasCliente = db.prepare('PRAGMA table_info(clientes)').all();
-if (!colunasCliente.some((coluna) => coluna.name === 'senha_hash')) {
-  db.exec('ALTER TABLE clientes ADD COLUMN senha_hash TEXT');
-}
-
 const colunasAgendamento = db.prepare('PRAGMA table_info(agendamentos)').all();
+if (!colunasAgendamento.some((coluna) => coluna.name === 'valor_final_centavos')) {
+  db.exec('ALTER TABLE agendamentos ADD COLUMN valor_final_centavos INTEGER');
+}
 if (!colunasAgendamento.some((coluna) => coluna.name === 'pagamento_status')) {
   db.exec("ALTER TABLE agendamentos ADD COLUMN pagamento_status TEXT NOT NULL DEFAULT 'dispensado' CHECK (pagamento_status IN ('dispensado','aguardando','pago','cancelado','expirado','falha','reembolso_pendente','reembolsado','reembolso_parcial','retido'))");
 }
 if (!colunasAgendamento.some((coluna) => coluna.name === 'pagamento_expira_em')) {
   db.exec('ALTER TABLE agendamentos ADD COLUMN pagamento_expira_em TEXT');
+}
+
+const colunasCliente = db.prepare('PRAGMA table_info(clientes)').all();
+if (!colunasCliente.some((coluna) => coluna.name === 'senha_hash')) {
+  db.exec('ALTER TABLE clientes ADD COLUMN senha_hash TEXT');
 }
 
 const colunasPix = db.prepare('PRAGMA table_info(pix_pagamentos)').all();
@@ -159,8 +170,72 @@ function seed() {
     lembreteAntecedenciaHoras: 24,
   });
 
+  seedClubeAssinaturas();
+
   console.log('[seed] Banco inicializado com dados de DEMONSTRAÇÃO.');
   console.log('[seed] Usuários: admin@demo.local / admin123 · prof1@demo.local / prof123 · recepcao@demo.local / recep123');
+}
+
+// ---------- Seed do Clube de Assinaturas (3 planos Beauty) ----------
+// Vincula os serviços pelos nomes do catálogo existente. Não cria serviços fictícios:
+// se algum não existir, registra pendência no log de auditoria para associação manual.
+function seedClubeAssinaturas() {
+  if (db.prepare('SELECT COUNT(*) AS n FROM subscription_plans').get().n > 0) return;
+
+  const procurar = (nome) => {
+    const direto = db.prepare('SELECT id FROM servicos WHERE lower(nome) = lower(?) AND ativo = 1').get(nome);
+    if (direto) return direto.id;
+    const parcial = db.prepare('SELECT id FROM servicos WHERE lower(nome) LIKE lower(?) AND ativo = 1 ORDER BY LENGTH(nome) LIMIT 1').get(`%${nome}%`);
+    return parcial ? parcial.id : null;
+  };
+
+  const planos = [
+    {
+      nome: 'Beauty Essential', descricao: 'Essencial para manter sua beleza em dia.',
+      mensalidade_centavos: 15000, desconto_adicional_pct: 10,
+      itens: [['Design de sobrancelhas', 1], ['Henna', 1], ['Buço — epilação feminina', 1], ['Axilas — epilação feminina', 1],
+              ['Meia perna — epilação feminina', 1], ['Manutenção de design', 1], ['Coxas — epilação feminina', 1]],
+    },
+    {
+      nome: 'Beauty Premium', descricao: 'O plano completo para quem cuida de tudo.',
+      mensalidade_centavos: 25000, desconto_adicional_pct: 15,
+      itens: [['Design de sobrancelhas', 2], ['Henna', 2], ['Virilha completa — epilação feminina', 1],
+              ['Meia perna — epilação feminina', 1], ['Axilas — epilação feminina', 1], ['Buço — epilação feminina', 1],
+              ['Manutenção de design', 1], ['Coxas — epilação feminina', 1]],
+    },
+    {
+      nome: 'Beauty Black', descricao: 'Experiência premium com todos os cuidados.',
+      mensalidade_centavos: 35000, desconto_adicional_pct: 20,
+      itens: [['Design com tintura', 1], ['Design com cera + henna', 1], ['Manutenção com henna', 1],
+              ['Virilha completa — epilação feminina', 1], ['Perna completa — epilação feminina', 1],
+              ['Axilas — epilação feminina', 1], ['Buço — epilação feminina', 1], ['Massagem grega', 1]],
+    },
+  ];
+
+  const pendencias = [];
+  for (const plano of planos) {
+    const itensResolvidos = [];
+    for (const [nome, quantidade] of plano.itens) {
+      const id = procurar(nome);
+      if (id) itensResolvidos.push({ servico_id: id, quantidade, nome });
+      else pendencias.push(`${plano.nome}: serviço "${nome}" não encontrado no catálogo — associação manual pendente.`);
+    }
+    if (!itensResolvidos.length) { pendencias.push(`${plano.nome}: nenhum serviço vinculado — plano não criado.`); continue; }
+    const existente = db.prepare('SELECT id FROM subscription_plans WHERE lower(nome) = lower(?)').get(plano.nome);
+    if (existente) continue;
+    const planoId = db.prepare(`INSERT INTO subscription_plans (nome, descricao, mensalidade_centavos, desconto_adicional_pct)
+                               VALUES (?, ?, ?, ?)`).run(plano.nome, plano.descricao, plano.mensalidade_centavos, plano.desconto_adicional_pct).lastInsertRowid;
+    for (const it of itensResolvidos) {
+      db.prepare('INSERT INTO subscription_plan_items (plano_id, servico_id, quantidade) VALUES (?, ?, ?)')
+        .run(planoId, it.servico_id, it.quantidade);
+    }
+    db.prepare(`INSERT INTO subscription_audit_logs (acao, entidade, entidade_id, detalhes) VALUES ('seed_plano', 'plano', ?, ?)`)
+      .run(planoId, JSON.stringify({ nome: plano.nome, itens: itensResolvidos.length }));
+  }
+  for (const p of pendencias) {
+    db.prepare(`INSERT INTO subscription_audit_logs (acao, detalhes) VALUES ('seed_pendencia', ?)`).run(p);
+    console.log('[clube] ' + p);
+  }
 }
 
 seed();

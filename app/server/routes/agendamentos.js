@@ -7,6 +7,7 @@ const { slotsDoProfissional, validarAgendamento } = require('../disponibilidade'
 const { criarNotificacao } = require('./notificacoes');
 
 const pagamentosPix = require('../pagamentos');
+const clube = require('./assinaturas');
 
 const STATUS_TRANSICOES = {
   pendente: ['confirmado', 'cancelado', 'falta'],
@@ -94,7 +95,11 @@ async function criarAgendamento(req, res, _u) {
 
   const ag = db.prepare('SELECT a.*, c.nome AS cliente, s.nome AS servico FROM agendamentos a JOIN clientes c ON c.id=a.cliente_id JOIN servicos s ON s.id=a.servico_id WHERE a.id=?').get(info.lastInsertRowid);
   criarNotificacao(ag, 'novo');
-  json(res, 201, { id: info.lastInsertRowid });
+
+  // Clube de assinaturas: reserva o benefício (se elegível) ou informa desconto aplicável.
+  let clubeInfo = null;
+  try { clubeInfo = clube.aoCriarAgendamento(ag); } catch (e) { throw new ValidationError(e.message); }
+  json(res, 201, { id: info.lastInsertRowid, clube: clubeInfo });
 }
 
 async function editarAgendamento(req, res, usuario, id) {
@@ -143,6 +148,11 @@ async function editarAgendamento(req, res, usuario, id) {
   `).run(c.cliente_id, c.profissional_id, c.servico_id, c.sala_id || null, c.data, c.hora_inicio, horaFim,
     novoStatus, c.observacoes ?? atual.observacoes, id);
 
+  // Clube de assinaturas: consumo definitivo ao finalizar; liberação quando sai de finalizado.
+  if (mudouStatus && novoStatus === 'finalizado') clube.aoFinalizarAgendamento(Number(id));
+  if (mudouStatus && atual.status === 'finalizado' && novoStatus !== 'finalizado') clube.aoCancelarAgendamento(Number(id));
+  if (mudouStatus && novoStatus === 'cancelado') clube.aoCancelarAgendamento(Number(id));
+
   if (mudouHorario || mudouStatus) {
     const ag = db.prepare('SELECT a.*, c.nome AS cliente, s.nome AS servico FROM agendamentos a JOIN clientes c ON c.id=a.cliente_id JOIN servicos s ON s.id=a.servico_id WHERE a.id=?').get(id);
     if (mudouHorario) criarNotificacao(ag, 'remarcacao');
@@ -190,6 +200,9 @@ async function alterarStatus(req, res, usuario, id) {
     }
   }
   db.prepare('UPDATE agendamentos SET status=?, atualizado_em=datetime(\'now\') WHERE id=?').run(c.status, id);
+  if (c.status === 'finalizado') clube.aoFinalizarAgendamento(Number(id));
+  if (c.status === 'cancelado') clube.aoCancelarAgendamento(Number(id));
+  if (atual.status === 'finalizado' && c.status !== 'finalizado') clube.aoCancelarAgendamento(Number(id));
   const ag = db.prepare('SELECT a.*, c.nome AS cliente, s.nome AS servico FROM agendamentos a JOIN clientes c ON c.id=a.cliente_id JOIN servicos s ON s.id=a.servico_id WHERE a.id=?').get(id);
   if (c.status === 'confirmado') criarNotificacao(ag, 'confirmacao');
   if (c.status === 'cancelado') criarNotificacao(ag, 'cancelamento');
@@ -210,6 +223,7 @@ async function excluirAgendamento(req, res, _u, id) {
     return erro(res, 409, 'Este agendamento possui histórico Pix. Cancele-o para preservar o registro de pagamento/devolução.');
   }
   if (pagamento) await pagamentosPix.cancelarAdmin(Number(id));
+  clube.aoCancelarAgendamento(Number(id));
   db.prepare('DELETE FROM agendamentos WHERE id = ?').run(id);
   json(res, 200, { ok: true });
 }
@@ -227,7 +241,15 @@ async function consultarSlots(req, res) {
   json(res, 200, r);
 }
 
+async function consultarBeneficio(req, res) {
+  const url = new URL(req.url, 'http://x');
+  const clienteId = Number(url.searchParams.get('cliente_id'));
+  const servicoId = Number(url.searchParams.get('servico_id'));
+  if (!clienteId || !servicoId) return erro(res, 400, 'Parâmetros inválidos: cliente_id, servico_id');
+  json(res, 200, clube.elegibilidade(clienteId, servicoId));
+}
+
 module.exports = {
   listarAgendamentos, obterAgendamento, criarAgendamento, editarAgendamento,
-  alterarStatus, excluirAgendamento, consultarSlots,
+  alterarStatus, excluirAgendamento, consultarSlots, consultarBeneficio,
 };

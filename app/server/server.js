@@ -23,6 +23,7 @@ const fin = require('./routes/financeiro');
 const clientesAuth = require('./routes/clientes-auth');
 const adminDados = require('./routes/admin-dados');
 const pagamentosPix = require('./pagamentos');
+const club = require('./routes/assinaturas');
 
 const PORT = Number(process.env.PORT || 3000);
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
@@ -165,12 +166,38 @@ async function tratarAPI(req, res, pathname, usuario) {
   if (recurso === 'agendamentos') {
     if (!temPermissao(usuario, 'agenda')) return erro(res, 403, 'Sem permissão');
     if (metodo === 'GET' && !id) return agd.listarAgendamentos(req, res, usuario);
+    if (metodo === 'GET' && id === 'beneficio') return agd.consultarBeneficio(req, res);
     if (metodo === 'GET' && id) return agd.obterAgendamento(req, res, usuario, id);
     if (metodo === 'POST' && !id) return agd.criarAgendamento(req, res, usuario);
     if (metodo === 'PUT' && id) return agd.editarAgendamento(req, res, usuario, id);
     if (metodo === 'POST' && id && sub === 'status') return agd.alterarStatus(req, res, usuario, id);
     if (metodo === 'DELETE' && id) return agd.excluirAgendamento(req, res, usuario, id);
     return erro(res, 404, 'Rota não encontrada');
+  }
+
+  if (recurso === 'clube') {
+    // área do cliente
+    if (pathname === '/api/clube/cliente' && metodo === 'GET') return club.clubeCliente(req, res);
+    if (pathname === '/api/clube/cliente/contratar' && metodo === 'POST') return club.contratarCliente(req, res);
+    if (pathname === '/api/clube/cliente/cancelar' && metodo === 'POST') return club.cancelarCliente(req, res);
+    // painel administrativo
+    if (!temPermissao(usuario, 'financeiro')) return erro(res, 403, 'Sem permissão para o clube de assinaturas');
+    if (metodo === 'GET' && id === 'planos' && !sub) return club.listarPlanos(req, res);
+    if (metodo === 'GET' && id === 'assinaturas' && !sub) return club.listarAssinaturas(req, res);
+    if (metodo === 'GET' && id === 'indicadores') return club.indicadores(req, res);
+    if (metodo === 'GET' && id === 'assinaturas' && sub) return club.obterAssinatura(req, res, usuario, sub);
+    if (metodo === 'POST' && id === 'planos' && !sub) return club.salvarPlano(req, res, usuario, null);
+    if (metodo === 'POST' && id === 'planos' && sub) return club.ativarPlano(req, res, usuario, Number(sub));
+    if (metodo === 'PUT' && id === 'planos' && sub) return club.salvarPlano(req, res, usuario, Number(sub));
+    if (metodo === 'DELETE' && id === 'planos' && sub) return club.excluirPlano(req, res, usuario, Number(sub));
+    const mClube = pathname.match(/^\/api\/clube\/assinaturas\/(\d+)\/(status|pagamento)$/);
+    if (metodo === 'POST' && mClube) {
+      return mClube[2] === 'status'
+        ? club.alterarStatusAssinatura(req, res, usuario, Number(mClube[1]))
+        : club.confirmarPagamento(req, res, usuario, Number(mClube[1]));
+    }
+    if (metodo === 'POST' && id === 'assinaturas' && !sub) return club.contratar(req, res, usuario);
+    return erro(res, 404, 'Rota do clube não encontrada');
   }
 
   if (recurso === 'financeiro') {

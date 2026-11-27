@@ -85,8 +85,18 @@ async function logout(req, res) {
   json(res, 200, { ok: true });
 }
 
+const clube = require('./assinaturas');
+
+async function clubeRotas(req, res, metodo, pathname) {
+  if (pathname === '/api/cliente/clube' && metodo === 'GET') return clube.clubeCliente(req, res);
+  if (pathname === '/api/cliente/clube/contratar' && metodo === 'POST') return clube.contratarCliente(req, res);
+  if (pathname === '/api/cliente/clube/cancelar' && metodo === 'POST') return clube.cancelarCliente(req, res);
+  return erro(res, 404, 'Rota de cliente não encontrada.');
+}
+
 async function despachar(req, res, pathname) {
   const metodo = req.method;
+  if (pathname.startsWith('/api/cliente/clube')) return clubeRotas(req, res, metodo, pathname);
   if (pathname === '/api/cliente/registrar' && metodo === 'POST') return registrar(req, res);
   if (pathname === '/api/cliente/login' && metodo === 'POST') return login(req, res);
   if (pathname === '/api/cliente/logout' && metodo === 'POST') return logout(req, res);

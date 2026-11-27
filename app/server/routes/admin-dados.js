@@ -45,7 +45,7 @@ async function limpar(req, res, usuario) {
     }
 
     const regras = [
-      { marcador: 'servicos', tabela: 'servicos', consulta: 'SELECT COUNT(*) AS n FROM agendamentos WHERE servico_id = ?', total: 'servicos' },
+      { marcador: 'servicos', tabela: 'servicos', consulta: 'SELECT (SELECT COUNT(*) FROM agendamentos WHERE servico_id = ?) + (SELECT COUNT(*) FROM subscription_plan_items WHERE servico_id = ?) + (SELECT COUNT(*) FROM subscription_entitlements WHERE servico_id = ?) + (SELECT COUNT(*) FROM subscription_usage WHERE servico_id = ?) AS n', total: 'servicos', conta: true },
       { marcador: 'profissionais', tabela: 'profissionais', consulta: 'SELECT (SELECT COUNT(*) FROM agendamentos WHERE profissional_id = ?) + (SELECT COUNT(*) FROM usuarios WHERE profissional_id = ?) AS n', total: 'profissionais', conta: true },
       { marcador: 'salas', tabela: 'salas', consulta: 'SELECT COUNT(*) AS n FROM agendamentos WHERE sala_id = ?', total: 'salas' },
     ];

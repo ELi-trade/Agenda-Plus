@@ -303,6 +303,7 @@ function layout(conteudo, menuAtivo) {
         ${financeiroVisivel ? `<a href="#/financeiro" class="${menuAtivo === 'financeiro' ? 'ativo' : ''}"><span class="nav-icon">$</span> Financeiro</a>` : ''}
         <a href="#/profissionais" class="${menuAtivo === 'profissionais' ? 'ativo' : ''}"><span class="nav-icon">♟</span> Profissionais</a>
         <a href="#/servicos" class="${menuAtivo === 'servicos' ? 'ativo' : ''}"><span class="nav-icon">◇</span> Serviços e preços</a>
+        ${financeiroVisivel ? `<a href="#/clube" class="${menuAtivo === 'clube' ? 'ativo' : ''}"><span class="nav-icon">★</span> Clube de Assinaturas</a>` : ''}
         ${financeiroVisivel ? `
         <a href="#/salas" class="${menuAtivo === 'salas' ? 'ativo' : ''}"><span class="nav-icon">▤</span> Salas</a>
         <a href="#/bloqueios" class="${menuAtivo === 'bloqueios' ? 'ativo' : ''}"><span class="nav-icon">◫</span> Bloqueios</a>
@@ -453,7 +454,7 @@ async function paginaContaCliente() {
       (['pendente', 'confirmado'].includes(a.status) ? '<button class="btn mini btn-sec" data-cancelar="' + a.id + '">Cancelar</button>' : '') +
       '</td></tr>').join('') : '<tr><td colspan="6" class="vazio">Você ainda não tem agendamentos.</td></tr>';
     $('#app').innerHTML = '<div class="client-shell"><header><a class="auth-logo" href="/">Agenda<span>+</span></a>' +
-      '<nav><a class="btn btn-sec" href="/agendar">Agendar serviço</a><button class="btn btn-sec" id="sair-cliente">Sair</button></nav></header>' +
+      '<nav><a class="btn btn-sec" href="#/meu-clube">Meu clube</a><a class="btn btn-sec" href="/agendar">Agendar serviço</a><button class="btn btn-sec" id="sair-cliente">Sair</button></nav></header>' +
       '<main><div class="topo"><div><h1>Olá, ' + esc(cliente.nome) + '</h1><p class="texto-fraco">Sua conta de cliente e seus agendamentos.</p></div></div>' +
       '<section class="card"><h2>Meus agendamentos</h2><div class="tabela-responsiva"><table><thead><tr><th>Data</th><th>Serviço</th><th>Profissional</th><th>Preço</th><th>Status</th><th></th></tr></thead><tbody>' +
       linhas + '</tbody></table></div></section></main></div>';
@@ -480,7 +481,80 @@ async function paginaContaCliente() {
     sessionStorage.removeItem('cliente');
     location.hash = '#/login';
   }
-}function telaRecuperar() {
+}
+
+// ==================== MEU CLUBE DE ASSINATURAS (CLIENTE) ====================
+async function paginaClubeCliente() {
+  try {
+    const cliente = await getCliente('/api/cliente/atual');
+    const dados = await getCliente('/api/cliente/clube');
+    state.cliente = cliente;
+    sessionStorage.setItem('cliente', JSON.stringify(cliente));
+    const a = dados.assinatura;
+    const statusLabels = { pendente: 'Aguardando pagamento', ativa: 'Ativa', cancelada: 'Cancelada', cancelamento_solicitado: 'Cancelamento em análise' };
+    const cardsPlanos = dados.planos.map((p) => {
+      const contratado = a && a.plano_id === p.id;
+      return `<div class="card plano-card clube-cliente ${contratado ? 'plano-contratado' : ''}">
+        <div class="plano-topo"><h3>${esc(p.nome)}</h3>${contratado ? '<span class="plano-badge ativo">Seu plano</span>' : ''}</div>
+        <p class="texto-fraco">${esc(p.descricao || '')}</p>
+        <div class="plano-preco">${centavos(p.mensalidade_centavos)}<small>/mês</small></div>
+        <div class="plano-meta"><span>Avulso: ${centavos(p.avulso_centavos)}</span><span class="plano-economia">Você economiza ${centavos(p.economia_centavos)}</span>${p.desconto_adicional_pct ? `<span>· ${p.desconto_adicional_pct}% off em serviços extras</span>` : ''}</div>
+        <div class="plano-itens">${p.itens.map((i) => `<div><span>${i.quantidade}×</span> ${esc(i.servico)} <small>${centavos(i.preco_centavos)} avulso</small></div>`).join('')}</div>
+        ${contratado ? '' : `<button class="btn btn-primario" data-contratar="${p.id}">Contratar</button>`}
+      </div>`;
+    }).join('');
+
+    $('#app').innerHTML = '<div class="client-shell"><header><a class="auth-logo" href="/">Agenda<span>+</span></a>' +
+      '<nav><a class="btn btn-sec" href="#/minha-conta">Minha conta</a><a class="btn btn-sec" href="/agendar">Agendar serviço</a><button class="btn btn-sec" id="sair-cliente">Sair</button></nav></header>' +
+      '<main><div class="topo"><div><h1>Meu Clube de Assinaturas</h1><p class="texto-fraco">Planos de mensalidade com serviços incluídos todo mês.</p></div></div>' +
+      (a ? `<section class="card assinatura-atual ${a.status === 'ativa' ? 'ativa' : ''}">
+        <h2>${esc(a.plano)} · <span class="tag-assin ${a.status}">${statusLabels[a.status] || a.status}</span></h2>
+        <div class="assinatura-meta">
+          <div><small>Mensalidade</small><b>${centavos(a.mensalidade_centavos)}</b></div>
+          ${a.ciclo ? `<div><small>Ciclo atual</small><b>${fmtData(a.ciclo.inicio_em)} – ${fmtData(a.ciclo.fim_em)}</b></div>` : ''}
+          ${a.ciclo && a.ciclo.status === 'aguardando_pagamento' ? '<div><small>Pagamento</small><b class="erro">Aguardando confirmação da clínica</b></div>' : ''}
+          ${a.desconto_adicional_pct ? `<div><small>Desconto extra</small><b>${a.desconto_adicional_pct}%</b></div>` : ''}
+        </div>
+        <h3>Procedimentos do ciclo</h3>
+        <div class="tabela-responsiva"><table><thead><tr><th>Serviço</th><th>Contratado</th><th>Usados</th><th>Restantes</th></tr></thead><tbody>
+        ${a.beneficios.map((b) => `<tr><td>${esc(b.servico)}</td><td>${b.quantidade}</td><td>${b.usados}</td><td><b>${b.quantidade - b.usados - b.reservados}</b></td></tr>`).join('') || '<tr><td colspan="4" class="vazio">—</td></tr>'}
+        </tbody></table></div>
+        <h3>Histórico de utilização</h3>
+        <div class="tabela-responsiva"><table><thead><tr><th>Data</th><th>Serviço</th><th>Ação</th></tr></thead><tbody>
+        ${a.utilizacao.map((u) => `<tr><td>${u.ag_data ? `${fmtData(u.ag_data)} ${fmtHora(u.hora_inicio)}` : '—'}</td><td>${esc(u.servico)}</td><td>${({ reservado: 'Reservado', consumido: 'Utilizado', liberado: 'Liberado' }[u.acao] || u.acao)}</td></tr>`).join('') || '<tr><td colspan="3" class="vazio">Nenhuma utilização ainda.</td></tr>'}
+        </tbody></table></div>
+        ${a.status === 'ativa' || a.status === 'pendente' ? `<button class="btn btn-perigo" id="cancelar-assinatura">Solicitar cancelamento</button>` : ''}
+      </section>` : '') +
+      '<section class="dash-section"><h2>Planos disponíveis</h2><div class="planos-grid">' + cardsPlanos + '</div></section>' +
+      '</main></div>';
+
+    $('#sair-cliente').onclick = async () => {
+      try { await postCliente('/api/cliente/logout', {}); } catch { }
+      setClientToken(null); sessionStorage.removeItem('cliente'); state.cliente = null; location.hash = '#/login';
+    };
+    $$('[data-contratar]').forEach((b) => b.onclick = async () => {
+      if (!confirmar('Contratar este plano? A mensalidade será cobrada conforme a confirmação da clínica.')) return;
+      await withLoading(async () => {
+        const r = await postCliente('/api/cliente/clube/contratar', { plano_id: Number(b.dataset.contratar) });
+        toast(r.mensagem || 'Plano contratado!', 'ok');
+        paginaClubeCliente();
+      });
+    });
+    const btnCancelar = $('#cancelar-assinatura');
+    if (btnCancelar) btnCancelar.onclick = async () => {
+      if (!confirmar('Solicitar o cancelamento da sua assinatura?')) return;
+      await withLoading(async () => {
+        const r = await postCliente('/api/cliente/clube/cancelar', { assinatura_id: a.id });
+        toast(r.mensagem || 'Solicitação registrada.', 'info');
+        paginaClubeCliente();
+      });
+    };
+  } catch {
+    state.cliente = null; sessionStorage.removeItem('cliente'); location.hash = '#/login';
+  }
+}
+
+function telaRecuperar() {
   $('#app').innerHTML = `
  <div class="auth-wrap"><div class="auth-card">
     <h2>Recuperar acesso</h2>
@@ -577,6 +651,17 @@ async function paginaDashboard(params = {}) {
   const dataFinal = `${mes}-${String(ultimoDia).padStart(2, '0')}`;
   const mesTitulo = new Date(ano, numeroMes - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
   const statusFinanceiro = { previsto: 'Previsto', nao_pago: 'Não pago', realizado: 'Realizado' };
+  const pendentesHtml = fin ? (d.pendentes.length ? `<section class="dash-section">
+          <div class="dash-section-title"><h2>Valores Pendentes</h2><span class="pendentes-total">Total pendente: <b>${valor(d.total_pendente_centavos)}</b></span></div>
+          <div class="card">${d.pendentes.map((p) => `<div class="item-ag pendente-restante">
+            <div class="ag-hora">${fmtData(p.data)}<br>${fmtHora(p.hora_inicio)}</div>
+            <div class="ag-info">
+              <div class="ag-cliente">${esc(p.cliente)}</div>
+              <div class="ag-det">${esc(p.servico)} · Sinal pago: ${valor(p.valor_sinal_centavos)} · Restante: <b>${valor(p.pendente_centavos)}</b></div>
+            </div>
+            <button class="btn mini btn-primario" data-recebido="${p.id}" data-valor="${p.pendente_centavos}">Marcar recebido</button>
+          </div>`).join('')}</div>
+        </section>` : '') : '';
   const contasTabela = fin ? fin.contas.map((conta) => `<tr><td>${statusFinanceiro[conta.status]}</td><td class="valor-receber">${valor(conta.receber_centavos)}</td><td class="valor-pagar">${valor(conta.pagar_centavos)}</td><td class="valor-saldo">${valor(conta.saldo_centavos)}</td></tr>`).join('') : '';
   const saudacao = new Date().getHours() < 12 ? 'Bom dia' : new Date().getHours() < 18 ? 'Boa tarde' : 'Boa noite';
 
@@ -592,6 +677,7 @@ async function paginaDashboard(params = {}) {
             ${fin ? `<button type="button" class="quick-card quick-teal" data-quick="sale"><span class="quick-icon">＋</span><span>Nova Venda</span></button><button type="button" class="quick-card quick-pink" data-quick="payable"><span class="quick-icon">$</span><span>Nova Conta a<br>Pagar</span></button>` : ''}
           </div>
         </section>
+        ${pendentesHtml}
         ${fin ? `
         <section class="dash-section">
           <h2>Saúde Financeira</h2>
@@ -639,6 +725,18 @@ async function paginaDashboard(params = {}) {
   $('#cal-proximo').onclick = () => navegarMes(1);
   if (fin) $('#mes-proximo').onclick = () => navegarMes(1);
   $$('.dash-day').forEach((botao) => botao.onclick = () => { location.hash = `#/agenda?data=${botao.dataset.date}`; });
+  $$('[data-recebido]').forEach((botao) => botao.onclick = async () => {
+    const id = botao.dataset.recebido;
+    if (!confirm(`Confirmar recebimento do restante de ${valor(Number(botao.dataset.valor))}?`)) return;
+    botao.disabled = true;
+    try {
+      await post(`/api/dashboard/pendentes/${id}/recebido`, {});
+      paginaDashboard({ mes });
+    } catch (e) {
+      botao.disabled = false;
+      alert(e.message || 'Erro ao registrar recebimento');
+    }
+  });
   if (fin) $('#fluxo-tipo').onchange = (e) => { $('#grafico-fluxo').innerHTML = graficoFinanceiro(fin.fluxo[e.target.value]); };
 }
 function itemAgendaCompacto(a) {
@@ -924,6 +1022,7 @@ async function modalAgendamento({ id = null, data = hojeISO(), profissional_id =
         <div><label>Status</label>
           ${campoStatus}</div>
       </div>
+      <div id="clube-info" class="clube-info"></div>
       <label>Observações<textarea name="observacoes" rows="2">${esc(ag?.observacoes || '')}</textarea></label>
       <div id="ag-erro" class="campo-erro"></div>
       <div class="modal-rodape">
@@ -959,6 +1058,29 @@ async function modalAgendamento({ id = null, data = hojeISO(), profissional_id =
   }
   selServ.onchange = selProf.onchange = dataInput.onchange = carregarSlots;
   if (selServ.value && selProf.value) carregarSlots();
+
+  // Clube de assinaturas: verifica elegibilidade do cliente no serviço escolhido.
+  const clubeInfo = $('#clube-info', m);
+  const selCliente = $('select[name=cliente_id]', m);
+  async function atualizarClube() {
+    if (!selCliente.value || !selServ.value) { clubeInfo.innerHTML = ''; return; }
+    clubeInfo.innerHTML = '<small>verificando benefícios…</small>';
+    try {
+      const b = await get(`/api/agendamentos/beneficio?cliente_id=${selCliente.value}&servico_id=${selServ.value}`);
+      if (b.tipo === 'incluido') {
+        clubeInfo.innerHTML = `<span class="clube-tag ok">★ ${esc(b.assinatura.plano)}</span> Benefício incluído no plano — <b>${b.restantes}</b> uso(s) restante(s) no ciclo.`;
+      } else if (b.tipo === 'desconto') {
+        clubeInfo.innerHTML = `<span class="clube-tag ok">★ ${esc(b.assinatura.plano)}</span> Desconto de assinante (${b.pct}%): <s>${centavos(b.preco_original_centavos)}</s> <b>${centavos(b.preco_final_centavos)}</b>`;
+      } else if (b.tipo === 'sem_beneficio') {
+        clubeInfo.innerHTML = `<span class="clube-tag">★ ${esc(b.assinatura.plano)}</span> Sem benefício/quantidade para este serviço neste ciclo — valor avulso ${centavos(b.servico?.preco_centavos)}.`;
+      } else {
+        clubeInfo.innerHTML = '';
+      }
+    } catch { clubeInfo.innerHTML = ''; }
+  }
+  selCliente.onchange = atualizarClube;
+  selServ.addEventListener('change', atualizarClube);
+  if (selCliente.value && selServ.value) atualizarClube();
 
   $('#form-ag', m).onsubmit = async (e) => {
     e.preventDefault();
@@ -1921,6 +2043,193 @@ async function paginaDadosIniciais() {
     });
   };
 }
+// ==================== CLUBE DE ASSINATURAS (ADMIN) ====================
+const centavos = (c) => fmtBRL(Number(c || 0) / 100);
+async function paginaClube() {
+  const [planos, assinaturas, ind] = await Promise.all([
+    get('/api/clube/planos'), get('/api/clube/assinaturas'), get('/api/clube/indicadores'),
+  ]);
+  layout(`
+    <div class="topo"><div><h1>Clube de Assinaturas</h1><p class="texto-fraco">Planos de mensalidade com direitos de utilização de serviços.</p></div>
+      <div class="acoes"><button class="btn btn-primario" id="btn-novo-plano">+ Novo plano</button></div></div>
+    <div class="grade-kpi">
+      <div class="card kpi"><small>Assinantes ativos</small><b>${ind.assinantes_ativos}</b></div>
+      <div class="card kpi"><small>Receita contratada/mês</small><b>${centavos(ind.mrr_contratado_centavos)}</b></div>
+      <div class="card kpi"><small>Receita recebida</small><b>${centavos(ind.receita_recebida_centavos)}</b></div>
+      <div class="card kpi"><small>Pagamentos pendentes</small><b>${ind.pagamentos_pendentes}</b></div>
+      <div class="card kpi"><small>Canceladas</small><b>${ind.assinaturas_canceladas}</b></div>
+      <div class="card kpi"><small>Benefícios disponíveis</small><b>${ind.beneficios_disponiveis}</b></div>
+    </div>
+    <section class="dash-section"><h2>Planos</h2><div class="planos-grid">${planos.map(cardPlano).join('') || '<div class="vazio">Nenhum plano cadastrado.</div>'}</div></section>
+    <section class="dash-section"><h2>Assinaturas</h2>
+      <div class="card tabela-responsiva"><table><thead><tr><th>Cliente</th><th>Plano</th><th>Mensalidade</th><th>Status</th><th>Início</th><th></th></tr></thead><tbody>
+      ${assinaturas.map((a) => `<tr><td>${esc(a.cliente)}</td><td>${esc(a.plano)}</td><td>${centavos(a.mensalidade_centavos)}</td>
+        <td><span class="tag-assin ${a.status}">${({ pendente: 'Pendente', ativa: 'Ativa', cancelada: 'Cancelada', cancelamento_solicitado: 'Cancel. solicitado', expirada: 'Expirada' }[a.status] || a.status)}</span></td>
+        <td>${a.inicio_em ? fmtData(a.inicio_em) : '—'}</td>
+        <td><button class="btn mini btn-sec" data-ver="${a.id}">Detalhes</button></td></tr>`).join('') || '<tr><td colspan="6" class="vazio">Nenhuma assinatura.</td></tr>'}
+      </tbody></table></div>
+    </section>
+    <section class="dash-section"><h2>Serviços mais utilizados</h2><div class="card">${ind.servicos_mais_utilizados.map((s) => `<div class="linha-uso"><span>${esc(s.servico)}</span><b>${s.vezes} utilização(ões)</b></div>`).join('') || '<div class="vazio">Sem utilização registrada.</div>'}</div></section>
+  `, 'clube');
+
+  $('#btn-novo-plano').onclick = () => modalPlano(null);
+  $$('.planos-grid [data-editar-plano]').forEach((b) => b.onclick = () => modalPlano(planos.find((p) => p.id === Number(b.dataset.editarPlano))));
+  $$('.planos-grid [data-ativar-plano]').forEach((b) => b.onclick = async () => {
+    const plano = planos.find((p) => p.id === Number(b.dataset.ativarPlano));
+    await withLoading(async () => {
+      await post(`/api/clube/planos/${plano.id}`, { ativo: !plano.ativo });
+      toast(plano.ativo ? 'Plano desativado.' : 'Plano ativado.', 'ok');
+      paginaClube();
+    });
+  });
+  $$('.planos-grid [data-excluir-plano]').forEach((b) => b.onclick = async () => {
+    const plano = planos.find((p) => p.id === Number(b.dataset.excluirPlano));
+    if (!confirmar(`Excluir o plano "${plano.nome}"?`)) return;
+    await withLoading(async () => {
+      try { await del(`/api/clube/planos/${plano.id}`); toast('Plano excluído.', 'ok'); paginaClube(); }
+      catch (e) { toast(e.message, 'erro'); }
+    });
+  });
+  $$('[data-ver]').forEach((b) => b.onclick = async () => {
+    const a = await get(`/api/clube/assinaturas/${b.dataset.ver}`);
+    modalAssinatura(a);
+  });
+}
+function cardPlano(p) {
+  return `<div class="card plano-card ${p.ativo ? '' : 'plano-inativo'}">
+    <div class="plano-topo"><h3>${esc(p.nome)}</h3><span class="plano-badge ${p.ativo ? 'ativo' : ''}">${p.ativo ? 'Ativo' : 'Inativo'}</span></div>
+    <p class="texto-fraco">${esc(p.descricao || '')}</p>
+    <div class="plano-preco">${centavos(p.mensalidade_centavos)}<small>/mês</small></div>
+    <div class="plano-meta"><span>${p.itens.length} serviço(s)</span><span>Avulso: ${centavos(p.avulso_centavos)}</span><span class="plano-economia">Economia: ${centavos(p.economia_centavos)}</span>${p.desconto_adicional_pct ? `<span>Desconto extra: ${p.desconto_adicional_pct}%</span>` : ''}</div>
+    <div class="plano-itens">${p.itens.map((i) => `<div><span>${i.quantidade}×</span> ${esc(i.servico)}</div>`).join('')}</div>
+    <div class="plano-acoes">
+      <button class="btn mini btn-sec" data-editar-plano="${p.id}">Editar</button>
+      <button class="btn mini btn-sec" data-ativar-plano="${p.id}">${p.ativo ? 'Desativar' : 'Ativar'}</button>
+      <button class="btn mini btn-perigo" data-excluir-plano="${p.id}">Excluir</button>
+    </div>
+  </div>`;
+}
+async function modalPlano(plano) {
+  const servs = (await get('/api/servicos?ativos=1')).filter((s) => s.ativo);
+  const itens = plano ? plano.itens.map((i) => ({ servico_id: i.servico_id, quantidade: i.quantidade })) : [];
+  const m = UI.modal(`
+    <h2>${plano ? 'Editar plano' : 'Novo plano'}</h2>
+    <form id="form-plano">
+      <label>Nome *<input name="nome" required value="${esc(plano?.nome || '')}"></label>
+      <label>Descrição<textarea name="descricao" rows="2">${esc(plano?.descricao || '')}</textarea></label>
+      <div class="linha">
+        <div><label>Mensalidade (R$) *<input name="mensalidade" type="number" step="0.01" min="0.01" required value="${plano ? (plano.mensalidade_centavos / 100).toFixed(2) : ''}"></label></div>
+        <div><label>Desconto adicional (%)<input name="desconto" type="number" min="0" max="100" value="${plano?.desconto_adicional_pct ?? 0}"></label></div>
+      </div>
+      <div class="linha">
+        <div><label>Validade dos benefícios (dias)<input name="validade" type="number" min="1" value="${plano?.validade_beneficios_dias ?? 31}"></label></div>
+        <div><label>Aviso mínimo p/ cancelar (dias)<input name="cancelamento" type="number" min="0" value="${plano?.cancelamento_dias ?? 0}"></label></div>
+      </div>
+      <label><input type="checkbox" name="transferir" ${plano?.transferir_expirados ? 'checked' : ''}> Transferir benefícios não usados para o próximo ciclo</label>
+      <h3>Serviços incluídos</h3>
+      <div id="plano-itens-editor"></div>
+      <button type="button" class="btn btn-sec" id="add-item">+ Adicionar serviço</button>
+      <div class="plano-calculo" id="plano-calculo"></div>
+      <div class="modal-rodape">
+        <button type="button" class="btn btn-sec" id="p-cancelar">Cancelar</button>
+        <button class="btn btn-primario">Salvar</button>
+      </div>
+    </form>`);
+  $('#p-cancelar', m).onclick = () => m.remove();
+  const editor = $('#plano-itens-editor', m);
+  function addLinha(item = { servico_id: '', quantidade: 1 }) {
+    const div = document.createElement('div');
+    div.className = 'linha-item';
+    div.innerHTML = `<select class="item-servico"><option value="">— selecionar —</option>${servs.map((s) => `<option value="${s.id}" ${item.servico_id == s.id ? 'selected' : ''}>${esc(s.nome)} (${centavos(s.preco_centavos)})</option>`).join('')}</select>
+      <input class="item-qtd" type="number" min="1" value="${item.quantidade}" aria-label="Quantidade">
+      <button type="button" class="btn mini btn-perigo" aria-label="Remover">×</button>`;
+    div.querySelector('.btn-perigo').onclick = () => div.remove();
+    div.onchange = recalcular;
+    editor.append(div);
+  }
+  function recalcular() {
+    let avulso = 0;
+    $$('.linha-item', editor).forEach((linha) => {
+      const s = servs.find((x) => x.id === Number(linha.querySelector('.item-servico').value));
+      const qtd = Number(linha.querySelector('.item-qtd').value || 1);
+      if (s) avulso += s.preco_centavos * qtd;
+    });
+    const mens = Math.round(Number($('input[name=mensalidade]', m).value || 0) * 100);
+    $('#plano-calculo', m).innerHTML = avulso
+      ? `Avulso total: <b>${centavos(avulso)}</b> · Mensalidade: <b>${centavos(mens)}</b> · ${mens <= avulso ? `Economia do cliente: <b class="ok">${centavos(avulso - mens)}</b>` : `<b class="erro">Atenção: mensalidade maior que o valor avulso</b>`}` : '';
+  }
+  $('#add-item', m).onclick = () => { addLinha(); recalcular(); };
+  itens.forEach(addLinha);
+  $('input[name=mensalidade]', m).oninput = recalcular;
+  recalcular();
+  $('#form-plano', m).onsubmit = async (e) => {
+    e.preventDefault();
+    const f = new FormData(e.target);
+    const itensSelecionados = $$('.linha-item', editor).map((linha) => ({
+      servico_id: Number(linha.querySelector('.item-servico').value),
+      quantidade: Number(linha.querySelector('.item-qtd').value || 1),
+    })).filter((i) => i.servico_id);
+    if (!itensSelecionados.length) { toast('Adicione pelo menos um serviço ao plano.', 'erro'); return; }
+    loading(true);
+    try {
+      const corpo = {
+        nome: f.get('nome'), descricao: f.get('descricao'),
+        mensalidade_centavos: Math.round(Number(f.get('mensalidade')) * 100),
+        desconto_adicional_pct: Number(f.get('desconto') || 0),
+        validade_beneficios_dias: Number(f.get('validade') || 31),
+        cancelamento_dias: Number(f.get('cancelamento') || 0),
+        transferir_expirados: !!f.get('transferir'),
+        itens: itensSelecionados,
+      };
+      if (plano) await put(`/api/clube/planos/${plano.id}`, corpo);
+      else await post('/api/clube/planos', corpo);
+      toast('Plano salvo.', 'ok'); m.remove(); paginaClube();
+    } catch (err) { toast(err.message, 'erro'); }
+    finally { loading(false); }
+  };
+}
+async function modalAssinatura(a) {
+  const statusLabels = { pendente: 'Pendente', ativa: 'Ativa', cancelada: 'Cancelada', cancelamento_solicitado: 'Cancelamento solicitado', expirada: 'Expirada' };
+  const m = UI.modal(`
+    <h2>Assinatura · ${esc(a.cliente)}</h2>
+    <p><b>${esc(a.plano)}</b> · ${centavos(a.mensalidade_centavos)}/mês ${a.desconto_adicional_pct ? `· desconto extra ${a.desconto_adicional_pct}%` : ''}</p>
+    <div class="linha" style="align-items:center">
+      <div><label>Status</label><select id="as-status">${['pendente','ativa','cancelada','cancelamento_solicitado','expirada'].map((s) => `<option value="${s}" ${a.status === s ? 'selected' : ''}>${statusLabels[s]}</option>`).join('')}</select></div>
+      <div><label>Início</label><input value="${a.inicio_em ? fmtData(a.inicio_em) : '—'}" disabled></div>
+      <div><button class="btn btn-primario" id="as-status-salvar" style="margin-top:22px">Salvar status</button></div>
+    </div>
+    <h3>Ciclo atual</h3>
+    ${a.ciclo ? `<p>${fmtData(a.ciclo.inicio_em)} a ${fmtData(a.ciclo.fim_em)} · ${statusLabels[a.ciclo.status] ? ({ aguardando_pagamento: 'Aguardando pagamento', ativo: 'Ativo', expirado: 'Expirado', cancelado: 'Cancelado' }[a.ciclo.status]) : esc(a.ciclo.status)}</p>
+      ${a.ciclo.status === 'aguardando_pagamento' ? '<button class="btn btn-primario" id="as-pagar">Confirmar pagamento da mensalidade</button>' : ''}` : '<p class="vazio">Nenhum ciclo ainda.</p>'}
+    <h3>Benefícios do ciclo</h3>
+    <div class="tabela-responsiva"><table><thead><tr><th>Serviço</th><th>Contratado</th><th>Usados</th><th>Reservados</th><th>Restantes</th></tr></thead><tbody>
+    ${a.beneficios.map((b) => `<tr><td>${esc(b.servico)}</td><td>${b.quantidade}</td><td>${b.usados}</td><td>${b.reservados}</td><td><b>${b.quantidade - b.usados - b.reservados}</b></td></tr>`).join('') || '<tr><td colspan="5" class="vazio">—</td></tr>'}
+    </tbody></table></div>
+    <h3>Pagamentos</h3>
+    <div class="tabela-responsiva"><table><thead><tr><th>Valor</th><th>Status</th><th>Vencimento/ciclo</th><th>Pago em</th></tr></thead><tbody>
+    ${a.pagamentos.map((p) => `<tr><td>${centavos(p.valor_centavos)}</td><td>${({ pendente: 'Pendente', pago: 'Pago', recusado: 'Recusado', cancelado: 'Cancelado', reembolsado: 'Reembolsado' }[p.status] || p.status)}</td><td>${p.ciclo_inicio ? `${fmtData(p.ciclo_inicio)}–${fmtData(p.ciclo_fim)}` : '—'}</td><td>${p.pago_em ? fmtData(p.pago_em) : '—'}</td></tr>`).join('') || '<tr><td colspan="4" class="vazio">—</td></tr>'}
+    </tbody></table></div>
+    <h3>Histórico de utilização</h3>
+    <div class="tabela-responsiva"><table><thead><tr><th>Data</th><th>Serviço</th><th>Ação</th></tr></thead><tbody>
+    ${a.utilizacao.map((u) => `<tr><td>${u.ag_data ? `${fmtData(u.ag_data)} ${fmtHora(u.hora_inicio)}` : '—'}</td><td>${esc(u.servico)}</td><td>${({ reservado: 'Reservado', consumido: 'Consumido', liberado: 'Liberado', expirado: 'Expirado', transferido: 'Transferido' }[u.acao] || u.acao)}</td></tr>`).join('') || '<tr><td colspan="3" class="vazio">—</td></tr>'}
+    </tbody></table></div>
+    <div class="modal-rodape"><button type="button" class="btn btn-sec" id="as-fechar">Fechar</button></div>`);
+  $('#as-fechar', m).onclick = () => m.remove();
+  $('#as-status-salvar', m).onclick = async () => {
+    await withLoading(async () => {
+      await post(`/api/clube/assinaturas/${a.id}/status`, { status: $('#as-status', m).value });
+      toast('Status atualizado.', 'ok'); m.remove(); paginaClube();
+    });
+  };
+  const pagar = $('#as-pagar', m);
+  if (pagar) pagar.onclick = async () => {
+    await withLoading(async () => {
+      await post(`/api/clube/assinaturas/${a.id}/pagamento`, {});
+      toast('Pagamento confirmado e ciclo ativado.', 'ok'); m.remove(); paginaClube();
+    });
+  };
+}
+
 // ==================== ROTEADOR ====================
 async function rotear() {
   const hash = location.hash.slice(2) || '';
@@ -1932,6 +2241,7 @@ async function rotear() {
   if (rota === 'login') { pararMonitorAgendamentos(); telaLogin(); return; }
   if (rota === 'cliente-cadastro') { telaCadastroCliente(); return; }
   if (rota === 'minha-conta') { await paginaContaCliente(); return; }
+  if (rota === 'meu-clube') { await paginaClubeCliente(); return; }
   if (rota === 'recuperar') { telaRecuperar(); return; }
   if (location.pathname === '/agendar') { paginaPublica(); return; }
 
@@ -1957,6 +2267,7 @@ async function rotear() {
     financeiro: paginaFinanceiro,
     profissionais: paginaProfissionais,
     servicos: paginaServicos,
+    clube: paginaClube,
     salas: paginaSalas,
     bloqueios: paginaBloqueios,
     configuracoes: paginaConfiguracoes,

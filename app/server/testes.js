@@ -301,6 +301,82 @@ async function req(metodo, caminho, corpo, token) {
   r = await req('GET', '/api/dashboard', undefined, admin);
   ok('dashboard reflete agendamentos online', r.status === 200);
 
+  console.log('\n== Clube de Assinaturas ==');
+  r = await req('GET', '/api/clube/planos', undefined, admin);
+  const nomesPlanos = r.dados.map((p) => p.nome);
+  ok('seed cria planos Beauty com serviços do catálogo (pendências registradas p/ associação manual)', r.status === 200 && nomesPlanos.includes('Beauty Essential') && nomesPlanos.includes('Beauty Premium') && dbTeste.prepare("SELECT COUNT(*) AS n FROM subscription_audit_logs WHERE acao = 'seed_pendencia'").get().n > 0);
+  const essencial = r.dados.find((p) => p.nome === 'Beauty Essential');
+  ok('plano calcula avulso em centavos e economia coerente', essencial && essencial.mensalidade_centavos === 15000 && essencial.avulso_centavos === essencial.itens.reduce((s, i) => s + i.preco_centavos * i.quantidade, 0) && (essencial.economia_centavos === essencial.avulso_centavos - essencial.mensalidade_centavos || essencial.economia_centavos === null));
+  r = await req('GET', '/api/clube/planos', undefined, recep);
+  ok('recepcao não acessa o clube → 403', r.status === 403);
+  r = await req('POST', '/api/clube/planos', { nome: 'Plano Teste', mensalidade_centavos: 10000, itens: [{ servico_id: 999999, quantidade: 1 }] }, admin);
+  ok('plano com serviço inexistente → 400', r.status === 400);
+  const servicoQualquer = dbTeste.prepare('SELECT id FROM servicos LIMIT 1').get().id;
+  r = await req('POST', '/api/clube/planos', { nome: 'Plano Teste', mensalidade_centavos: 10000, desconto_adicional_pct: 10, itens: [{ servico_id: servicoQualquer, quantidade: 2 }] }, admin);
+  ok('criar plano → 201', r.status === 201);
+  const planoTeste = r.dados.id;
+  r = await req('PUT', `/api/clube/planos/${planoTeste}`, { nome: 'Plano Teste Editado', mensalidade_centavos: 12000, desconto_adicional_pct: 5, itens: [{ servico_id: servicoQualquer, quantidade: 3 }] }, admin);
+  ok('editar plano → 200', r.status === 200);
+  r = await req('POST', `/api/clube/planos/${planoTeste}`, { ativo: false }, admin);
+  ok('desativar plano → 200', r.status === 200 && r.dados.ativo === false);
+
+  r = await req('POST', '/api/clube/assinaturas', { plano_id: essencial.id, cliente_id: 1 }, admin);
+  ok('contratar assinatura → 201', r.status === 201);
+  const assinaturaId = r.dados.id;
+  const ciclo = dbTeste.prepare('SELECT * FROM subscription_cycles WHERE assinatura_id = ?').get(assinaturaId);
+  ok('contratação cria ciclo aguardando pagamento com benefícios', ciclo && ciclo.status === 'aguardando_pagamento' && dbTeste.prepare('SELECT COUNT(*) AS n FROM subscription_entitlements WHERE ciclo_id = ?').get(ciclo.id).n > 0);
+  r = await req('GET', '/api/clube/assinaturas/' + assinaturaId, undefined, admin);
+  ok('assinatura pendente não libera benefício (elegibilidade sem ciclo)', r.status === 200 && r.dados.ciclo.status === 'aguardando_pagamento');
+  r = await req('POST', `/api/clube/assinaturas/${ciclo.id}/pagamento`, {}, admin);
+  ok('confirmar pagamento ativa ciclo e assinatura', r.status === 200 && dbTeste.prepare("SELECT status FROM subscription_cycles WHERE id = ?").get(ciclo.id).status === 'ativo' && dbTeste.prepare("SELECT status FROM subscriptions WHERE id = ?").get(assinaturaId).status === 'ativa');
+
+  // agendamento interno consome benefício do clube (usa um serviço incluído no plano)
+  const servicoClube = dbTeste.prepare('SELECT servico_id FROM subscription_plan_items WHERE plano_id = ? LIMIT 1').get(essencial.id).servico_id;
+  const profClube = dbTeste.prepare('SELECT profissional_id AS id FROM servico_profissional WHERE servico_id = ? LIMIT 1').get(servicoClube).id;
+  const amanhaClube = new Date(); amanhaClube.setDate(amanhaClube.getDate() + ((8 - amanhaClube.getDay()) % 7 || 7));
+  const dataClube = amanhaClube.toISOString().slice(0, 10);
+  const slotsClube = await req('GET', `/api/disponibilidade?profissional_id=${profClube}&servico_id=${servicoClube}&data=${dataClube}`, undefined, admin);
+  const slotClube = slotsClube.dados?.slots?.[0];
+  if (slotClube) {
+    r = await req('POST', '/api/agendamentos', { cliente_id: 1, profissional_id: profClube, servico_id: servicoClube, data: dataClube, hora_inicio: slotClube }, admin);
+    ok('agendamento reserva benefício do clube', r.status === 201 && r.dados.clube && r.dados.clube.tipo === 'incluido');
+    const agClube = r.dados.id;
+    const entReservado = dbTeste.prepare('SELECT * FROM subscription_entitlements WHERE ciclo_id = ? AND servico_id = ?').get(ciclo.id, servicoClube);
+    ok('reserva temporária registrada (usados inalterados)', entReservado && entReservado.reservados === 1 && entReservado.usados === 0);
+    r = await req('POST', `/api/agendamentos/${agClube}/status`, { status: 'confirmado' }, admin);
+    r = await req('POST', `/api/agendamentos/${agClube}/status`, { status: 'em_atendimento' }, admin);
+    r = await req('POST', `/api/agendamentos/${agClube}/status`, { status: 'finalizado' }, admin);
+    const entConsumido = dbTeste.prepare('SELECT * FROM subscription_entitlements WHERE ciclo_id = ? AND servico_id = ?').get(ciclo.id, servicoClube);
+    ok('finalização converte reserva em consumo', r.status === 200 && entConsumido && entConsumido.usados === 1 && entConsumido.reservados === 0);
+    r = await req('POST', `/api/agendamentos/${agClube}/status`, { status: 'em_atendimento' }, admin);
+    ok('finalizado não pode ser revertido por status → 409 (consumo preservado)', r.status === 409);
+    // consumo preservado; liberação ocorre quando o agendamento é excluído
+    r = await req('DELETE', `/api/agendamentos/${agClube}`, undefined, admin);
+    ok('excluir agendamento libera o consumo do benefício', r.status === 200 && dbTeste.prepare('SELECT usados FROM subscription_entitlements WHERE ciclo_id = ? AND servico_id = ?').get(ciclo.id, servicoClube).usados === 0);
+    r = await req('GET', `/api/agendamentos/beneficio?cliente_id=1&servico_id=${servicoClube}`, undefined, admin);
+    ok('elegibilidade volta a oferecer o benefício após liberação', r.status === 200 && r.dados.tipo === 'incluido' && dbTeste.prepare("SELECT COUNT(*) AS n FROM subscription_usage WHERE cliente_id = 1 AND acao = 'liberado'").get().n > 0);
+  } else {
+    ok('slots disponíveis para testar consumo do clube', false);
+  }
+
+  r = await req('GET', '/api/clube/indicadores', undefined, admin);
+  ok('indicadores do clube calculados', r.status === 200 && typeof r.dados.mrr_contratado_centavos === 'number' && typeof r.dados.assinantes_ativos === 'number');
+  r = await req('DELETE', `/api/clube/planos/${planoTeste}`, undefined, admin);
+  ok('excluir plano sem assinantes → 200', r.status === 200);
+
+  // área do cliente
+  r = await req('POST', '/api/cliente/registrar', { nome: 'Assinante Clube', email: 'clube@teste.local', telefone: '11977776666', senha: 'clube12345' });
+  const tokenClube = r.dados.token;
+  const clienteClubeId = dbTeste.prepare('SELECT id FROM clientes WHERE email = ?').get('clube@teste.local').id;
+  r = await req('GET', '/api/cliente/clube', undefined, tokenClube);
+  ok('cliente vê planos ativos e sem assinatura', r.status === 200 && r.dados.planos.length >= 1 && r.dados.assinatura === null);
+  r = await req('POST', '/api/cliente/clube/contratar', { plano_id: essencial.id }, tokenClube);
+  ok('cliente contrata plano → 201 pendente', r.status === 201);
+  r = await req('POST', '/api/cliente/clube/contratar', { plano_id: essencial.id }, tokenClube);
+  ok('contratação duplicada → 409', r.status === 409);
+  r = await req('POST', '/api/cliente/clube/cancelar', { assinatura_id: dbTeste.prepare('SELECT id FROM subscriptions WHERE cliente_id = ?').get(clienteClubeId).id }, tokenClube);
+  ok('cliente cancela assinatura pendente', r.status === 200);
+
   console.log('\n== Notificações ==');
   r = await req('GET', '/api/notificacoes', undefined, admin);
   ok('notificações registradas (status desabilitada)', r.status === 200 && r.dados.length > 0 && r.dados.every((n) => n.status === 'desabilitada'));

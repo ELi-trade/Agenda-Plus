@@ -561,3 +561,44 @@ body.menu-aberto .menu-fundo { display: block; }
 }
 html[data-tema-escuro="true"] .menu-fundo { background: rgba(0,0,0,.6); }
 html[data-tema-escuro="true"] input, html[data-tema-escuro="true"] select, html[data-tema-escuro="true"] textarea { color: var(--texto); }
+
+/* ==================== Clube de Assinaturas ==================== */
+.planos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.plano-card { display: flex; flex-direction: column; gap: 10px; margin-bottom: 0; transition: transform .18s ease, box-shadow .18s ease; }
+.plano-card:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(0,0,0,.10); }
+.plano-card.plano-inativo { opacity: .55; }
+.plano-card.plano-contratado { outline: 2px solid var(--primaria); }
+.plano-topo { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.plano-topo h3 { margin: 0; font-size: 16px; }
+.plano-badge { font-size: 11px; padding: 3px 9px; border-radius: 999px; background: #eef2f5; color: #64748b; font-weight: 600; }
+.plano-badge.ativo { background: rgba(48,164,108,.14); color: var(--ok); }
+.plano-preco { font-size: 26px; font-weight: 700; letter-spacing: -.5px; }
+.plano-preco small { font-size: 13px; font-weight: 500; color: #64748b; }
+.plano-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; color: #475569; }
+.plano-economia { color: var(--ok); font-weight: 600; }
+.plano-itens { display: flex; flex-direction: column; gap: 4px; font-size: 13.5px; border-top: 1px dashed #e2e8f0; padding-top: 10px; }
+.plano-itens span { display: inline-block; min-width: 26px; font-weight: 700; color: var(--primaria-escura); }
+.plano-itens small { color: #94a3b8; }
+.plano-acoes { display: flex; gap: 8px; margin-top: auto; }
+.plano-calculo { font-size: 13.5px; min-height: 18px; }
+.plano-calculo .ok { color: var(--ok); }
+.plano-calculo .erro { color: var(--perigo); }
+.linha-item { display: grid; grid-template-columns: 1fr 84px 34px; gap: 8px; align-items: center; margin-bottom: 8px; }
+.kpi small { display: block; color: #64748b; margin-bottom: 4px; }
+.kpi b { font-size: 20px; }
+.linha-uso { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px dashed #e2e8f0; font-size: 14px; }
+.linha-uso:last-child { border-bottom: 0; }
+.tag-assin { font-size: 11px; padding: 3px 9px; border-radius: 999px; font-weight: 600; background: #eef2f5; color: #64748b; }
+.tag-assin.ativa { background: rgba(48,164,108,.14); color: var(--ok); }
+.tag-assin.pendente, .tag-assin.cancelamento_solicitado { background: rgba(234,178,18,.15); color: #b45309; }
+.tag-assin.cancelada, .tag-assin.expirada { background: rgba(229,72,77,.12); color: var(--perigo); }
+.clube-info { font-size: 13.5px; min-height: 18px; }
+.clube-tag { display: inline-block; padding: 2px 9px; border-radius: 999px; background: #eef2f5; color: #64748b; font-weight: 600; font-size: 12px; margin-right: 6px; }
+.clube-tag.ok { background: rgba(0,177,197,.12); color: var(--primaria-escura); }
+.assinatura-atual { border-left: 4px solid #e2e8f0; }
+.assinatura-atual.ativa { border-left-color: var(--ok); }
+.assinatura-meta { display: flex; flex-wrap: wrap; gap: 10px 28px; margin: 6px 0 12px; }
+.assinatura-meta small { display: block; color: #64748b; }
+.assinatura-meta b { font-size: 15px; }
+.assinatura-meta .erro { color: var(--perigo); }
+@media (max-width: 720px) { .planos-grid { grid-template-columns: 1fr; } }
