@@ -1,4 +1,4 @@
-﻿
+
 // app.js — SPA Agenda (pt-BR)
 import { get, post, put, del, UI, setToken, setClientToken, getCliente, postCliente, postPublico } from './api.js';
 
@@ -1948,21 +1948,69 @@ async function rotear() {
 window.addEventListener('hashchange', rotear);
 (async () => { await carregarTemaSalvo(); await rotear(); })();
 
-// Exclusão forçada de agendamento (admin)
-async function excluirAgendamentoForcado(id) {
-  if (!confirm('⚠️ ATENÇÃO: Esta ação irá excluir DEFINITIVAMENTE o agendamento e todo o histórico Pix associado.\n\nDeseja continuar?')) {
-    return;
+/* ===== Botao WhatsApp na agenda (abre conversa com o cliente) ===== */
+(function(){
+  if (window._whatsAgendaInit) return;
+  window._whatsAgendaInit = true;
+
+  var STATUS_TXT = { pendente:'Pendente', confirmado:'Confirmado', em_atendimento:'Em atendimento', finalizado:'Finalizado', falta:'Falta', cancelado:'Cancelado' };
+
+  async function nomeClinica(){
+    if (window._cfgNome) return window._cfgNome;
+    try {
+      var r = await fetch('/api/publico/config');
+      var cfg = await r.json();
+      window._cfgNome = (cfg && cfg.nome) ? cfg.nome : 'nosso studio';
+    } catch(e){ window._cfgNome = 'nosso studio'; }
+    return window._cfgNome;
   }
-  if (!confirm('🔴 CONFIRMAÇÃO FINAL: Digite OK para confirmar a exclusão permanente.')) {
-    return;
+
+  function statusDeItem(item){
+    var m = (item.className||'').match(/st-([a-z_]+)/);
+    return m ? (STATUS_TXT[m[1]] || m[1]) : 'agendado';
   }
-  try {
-    await withLoading(async () => {
-      await del(`/api/admin/agendamentos/${id}/forcado`);
-      toast('Agendamento excluído definitivamente', 'ok');
-      location.reload();
+
+  async function abrir(item){
+    var cliente = (item.querySelector('.info .cliente')||{}).textContent || '';
+    var detalhe = (item.querySelector('.info .detalhe')||{}).textContent || '';
+    var horaEl  = (item.querySelector('.hora')||{}).textContent || '';
+    var hora    = (horaEl.trim().split(/\s+/)[0]) || '';
+    var dataInput = document.querySelector('input[type=date]');
+    var dataISO = dataInput ? dataInput.value : '';
+    var dataFmt = dataISO ? dataISO.split('-').reverse().join('/') : '';
+    var partes  = detalhe.split('·').map(function(s){return s.trim();});
+    var servico = partes[0] || '';
+    var prof    = partes[1] || '';
+    var telMatch = detalhe.match(/(\d[\d\s()-]{8,})$/);
+    var tel = telMatch ? telMatch[1].replace(/\D/g,'') : '';
+    if(!tel){ alert('Este cliente não tem telefone cadastrado.'); return; }
+    if(tel.indexOf('55')!==0) tel = '55'+tel;
+    var clinica = await nomeClinica();
+    var msg =
+      'Olá, '+cliente+'! 👋\n\n'+
+      'Aqui é do '+clinica+'. Seu agendamento está *'+statusDeItem(item)+'*:\n\n'+
+      '📅 '+dataFmt+' às '+hora+'\n'+
+      '💆 '+servico+'\n'+
+      '👩‍⚕️ '+prof+'\n\n'+
+      'Qualquer dúvida, é só responder aqui! 💙';
+    window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(msg), '_blank');
+  }
+
+  function injetar(){
+    document.querySelectorAll('.item-agenda').forEach(function(item){
+      if(item.dataset.whatsDone) return;
+      var acoes = item.querySelector('.acoes');
+      if(!acoes) return;
+      item.dataset.whatsDone = '1';
+      var b = document.createElement('button');
+      b.className = 'btn btn-mini';
+      b.style.cssText = 'background:#25D366;color:#fff;border:none;';
+      b.textContent = '💬 WhatsApp';
+      b.onclick = function(){ abrir(item); };
+      acoes.appendChild(b);
     });
-  } catch (e) {
-    toast(e.message, 'erro');
   }
-}
+
+  injetar();
+  new MutationObserver(injetar).observe(document.getElementById('app'), {childList:true, subtree:true});
+})();
