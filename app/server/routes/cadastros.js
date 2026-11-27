@@ -234,7 +234,7 @@ async function salvarFuncionamento(req, res) {
 }
 
 module.exports = {
-  listarClientes, obterCliente, salvarCliente, excluirCliente, inativarCliente,
+  listarClientes, obterCliente, salvarCliente, excluirCliente,
   listarProfissionais, salvarProfissional, excluirProfissional,
   listarServicos, salvarServico, excluirServico,
   listarSalas, salvarSala, excluirSala,
