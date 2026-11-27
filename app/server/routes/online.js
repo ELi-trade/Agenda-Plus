@@ -97,13 +97,18 @@ async function agendarPublico(req, res) {
     .get(c.profissional_id, c.data, c.hora_inicio);
   if (dup) return erro(res, 409, 'Este horário acabou de ser ocupado. Escolha outro, por favor.');
 
-  const info = db.prepare("INSERT INTO agendamentos (cliente_id, profissional_id, servico_id, data, hora_inicio, hora_fim, status, origem, pagamento_status) VALUES (?, ?, ?, ?, ?, ?, 'pendente', 'online', 'aguardando')")
-    .run(cliente.id, c.profissional_id, c.servico_id, c.data, c.hora_inicio, val.horaFim);
+  // Desconto de 10% para agendamentos via app
+  const descontoApp = 0.10;
+  const valorFinalCentavos = Math.round(servico.preco_centavos * (1 - descontoApp));
+
+  const info = db.prepare("INSERT INTO agendamentos (cliente_id, profissional_id, servico_id, data, hora_inicio, hora_fim, status, origem, pagamento_status, valor_final_centavos) VALUES (?, ?, ?, ?, ?, ?, 'pendente', 'online', 'aguardando', ?)")
+    .run(cliente.id, c.profissional_id, c.servico_id, c.data, c.hora_inicio, val.horaFim, valorFinalCentavos);
   try {
     const checkout = await pagamentosPix.criarPagamento({
       agendamentoId: Number(info.lastInsertRowid),
       servico,
       cliente,
+      valorFinalCentavos,
     });
     json(res, 201, {
       id: info.lastInsertRowid,

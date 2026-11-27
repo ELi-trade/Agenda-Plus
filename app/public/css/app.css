@@ -489,3 +489,75 @@ html[data-tema-escuro="true"] .finance-list th, html[data-tema-escuro="true"] .s
 .servico-preco { flex: 0 0 105px; text-align: right; }
 .duracao-ajuda { margin: -3px 0 10px; color: var(--texto-fraco); font-size: 12px; }
 @media (max-width: 560px) { .servicos-categoria > summary { padding: 11px 12px; } .servicos-categoria .lista-servicos { padding: 8px; } .servico-preco { flex-basis: 82px; } }
+
+/* ---------- App instalável (PWA) / Mobile ---------- */
+.menu-flutuante {
+  display: none;
+  position: fixed; z-index: 40;
+  left: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  width: 56px; height: 56px; border: none; border-radius: 50%;
+  background: var(--primaria); color: #fff; font-size: 24px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.28); cursor: pointer;
+}
+.menu-flutuante:active { filter: brightness(.92); }
+
+.menu-fundo {
+  display: none; position: fixed; inset: 0; z-index: 45;
+  background: rgba(10,18,28,.5);
+}
+body.menu-aberto .menu-fundo { display: block; }
+
+/* Em telas pequenas a sidebar vira um drawer deslizante */
+@media (max-width: 900px) {
+  .layout { display: block; }
+  .menu-flutuante { display: block; }
+  .sidebar {
+    position: fixed; z-index: 46; top: 0; left: 0; bottom: 0;
+    width: min(84vw, 300px); height: 100%;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    transform: translateX(-105%); transition: transform .22s ease;
+    overflow-y: auto; box-shadow: 0 0 24px rgba(0,0,0,.3);
+  }
+  body.menu-aberto .sidebar { transform: translateX(0); }
+  .sidebar nav { display: block; overflow: visible; padding: 4px 0; }
+  .sidebar nav a { min-height: 48px; padding: 13px 20px; font-size: 15px; border-left: 3px solid transparent; }
+  .sidebar .logo { padding: 18px 20px 14px; }
+  .sidebar .rodape { border-top: 1px solid rgba(255,255,255,.08); margin-top: auto; padding: 14px 20px; }
+  .topbar { padding: 0 12px; gap: 10px; }
+  .global-search { width: 100%; height: 40px; }
+  .global-search button { width: 48px; }
+  .conteudo { padding: 16px 12px calc(84px + env(safe-area-inset-bottom, 0px)); }
+  .avatar { width: 36px; height: 36px; font-size: 18px; }
+  .topbar-user-name { display: none; }
+
+  /* Alvos de toque maiores em botões pequenos e links de abas */
+  .btn { min-height: 42px; padding: 10px 16px; }
+  .btn.mini { min-height: 34px; padding: 7px 11px; font-size: 13px; }
+  .icon-button { width: 38px; height: 38px; }
+  .abas button { padding: 11px 14px; }
+
+  /* Calendário semanal e mensal rodam com toque natural */
+  .cal-cel { min-height: 60px; }
+  .semana { font-size: 11px; }
+  .semana .cel { min-height: 40px; }
+
+  /* Modais aproveitam a tela toda no celular */
+  .modal { max-height: 94dvh; border-radius: 14px 14px 0 0; max-width: 640px; margin-top: auto; padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px)); }
+  .modal-fundo { align-items: flex-end; padding: 0; }
+
+  /* Toast centralizado em cima do botão de menu */
+  .toast { bottom: calc(84px + env(safe-area-inset-bottom, 0px)); left: 16px; right: auto; max-width: min(320px, calc(100vw - 90px)); }
+}
+
+/* Telas muito estreitas: degradação extra das grades */
+@media (max-width: 480px) {
+  .grade-kpi { grid-template-columns: 1fr 1fr; }
+  .agenda-kpis { grid-template-columns: 1fr 1fr; }
+  .kpi .valor, .kpi-valor, .agenda-kpis b { font-size: 20px; }
+  .item-agenda, .item-ag { flex-wrap: wrap; gap: 8px; }
+  .item-agenda .hora, .ag-hora { min-width: 0; }
+  .tabela-responsiva { -webkit-overflow-scrolling: touch; }
+}
+html[data-tema-escuro="true"] .menu-fundo { background: rgba(0,0,0,.6); }
+html[data-tema-escuro="true"] input, html[data-tema-escuro="true"] select, html[data-tema-escuro="true"] textarea { color: var(--texto); }

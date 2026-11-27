@@ -1,0 +1,1 @@
+﻿const {DatabaseSync}=require('node:sqlite'); const db=new DatabaseSync('./app/server/data/agendamento.db'); const cols=db.prepare('PRAGMA table_info(agendamentos)').all(); const tem = cols.some(c=>c.name==='valor_final_centavos'); console.log(tem?'COLUNA EXISTE':'COLUNA NAO EXISTE');

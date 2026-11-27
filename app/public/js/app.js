@@ -292,7 +292,9 @@ function layout(conteudo, menuAtivo) {
   const financeiroVisivel = ['admin', 'gestor'].includes(u.perfil);
   $('#app').innerHTML = `
  <div class="layout">
-    <aside class="sidebar">
+    <button class="menu-flutuante" id="btn-menu" aria-label="Abrir menu" aria-expanded="false">☰</button>
+    <div class="menu-fundo" id="menu-fundo"></div>
+    <aside class="sidebar" id="sidebar">
       <div class="logo">Agenda<span>+</span></div>
       <nav>
         <a href="#/dashboard" class="${menuAtivo === 'dashboard' ? 'ativo' : ''}"><span class="nav-icon">⌂</span> Início</a>
@@ -326,6 +328,21 @@ function layout(conteudo, menuAtivo) {
     </section>
  </div>`;
   const navPrincipal = $('.sidebar nav');
+  // Drawer do menu em telas pequenas
+  const btnMenu = $('#btn-menu');
+  const fundoMenu = $('#menu-fundo');
+  const alternarMenu = (abrir) => {
+    const aberto = abrir ?? !document.body.classList.contains('menu-aberto');
+    document.body.classList.toggle('menu-aberto', aberto);
+    btnMenu.setAttribute('aria-expanded', String(aberto));
+  };
+  btnMenu.addEventListener('click', () => alternarMenu());
+  if (fundoMenu) {
+    fundoMenu.addEventListener('click', () => alternarMenu(false));
+    navPrincipal.addEventListener('click', (e) => {
+      if (e.target.closest('a')) alternarMenu(false);
+    });
+  }
   if (state.user.perfil === 'admin') {
     const linkDados = document.createElement('a');
     linkDados.href = '#/dados-iniciais';
@@ -1763,7 +1780,10 @@ async function renderPublico(msg) {
     else carregarSlots(p.data);
 
   } else if (p.passo === 4) {
-    const valorSinal = Math.round(p.servico.preco_centavos / 2);
+    // Verifica se tem desconto de 10% (agendamento via app)
+    const valorServico = p.servico.valor_final_centavos || p.servico.preco_centavos;
+    const temDesconto = p.servico.valor_final_centavos && p.servico.valor_final_centavos < p.servico.preco_centavos;
+    const valorSinal = Math.round(valorServico / 2);
     corpo.innerHTML = '<h2>Confirme seu agendamento</h2>' +
       '<div class="card"><p><b>' + esc(p.servico.nome) + '</b> · ' + fmtData(p.data) + ' às ' + p.slot + ' · ' + esc(p.profissional?.nome || '') + '</p>' +
       '<div class="pix-resumo"><span>Valor do serviço <b>' + fmtBRL(p.servico.preco_centavos / 100) + '</b></span>' +
