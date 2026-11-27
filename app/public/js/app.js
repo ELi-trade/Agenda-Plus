@@ -1376,7 +1376,6 @@ async function paginaSalas() {
       catch (e) { toast(e.message || 'Erro ao excluir', 'erro'); }
     });
   });
-    $('#tab-usu [data-excluir-usuario]').forEach((b) => b.onclick = async () => { if (!confirmar('Excluir este usuario permanentemente?')) return; await withLoading(async () => { try { await del('/api/usuarios/' + b.dataset.excluirUsuario); toast('Usuario excluido','ok'); location.reload(); } catch(e){ toast(e.message||'Erro','erro'); } }); });
   $('#btn-novo').onclick = () => {
     const m = UI.modal(`<h2>Nova sala</h2><form id="f">
       <label>Nome *<input name="nome" required></label>
