@@ -1069,7 +1069,7 @@ async function paginaClientes(params = {}) {
           <td class="cel-acoes">
             <button class="btn mini btn-sec" data-hist="${c.id}">Histórico</button>
             <button class="btn mini btn-sec" data-editar="${c.id}">Editar</button>
-            <button class="btn mini btn-perigo" data-excluir="${c.id}">Inativar</button>
+            <button class="btn mini btn-perigo" data-excluir-definitivo="${c.id}">Excluir</button> <button class="btn mini btn-sec" data-excluir="${c.id}">Inativar</button>
           </td>
         </tr>`).join('')}</tbody></table>`
       : '<div class="vazio">Nenhum cliente encontrado.</div>';
@@ -1090,7 +1090,14 @@ async function paginaClientes(params = {}) {
       `);
     });
     $$('#tab-cli [data-editar]').forEach((b) => b.onclick = () => modalCliente(lista.find((x) => x.id == b.dataset.editar)));
-    $$('#tab-cli [data-excluir]').forEach((b) => b.onclick = async () => {
+    $('#tab-cli [data-excluir-definitivo]').forEach((b) => b.onclick = async () => {
+      if (!confirmar('Excluir este cliente PERMANENTEMENTE?')) return;
+      await withLoading(async () => {
+        try { await del('/api/clientes/' + b.dataset.excluirDefinitivo); toast('Cliente excluido', 'ok'); carregar(busca); }
+        catch (e) { toast(e.message || 'Erro ao excluir', 'erro'); }
+      });
+    });
+    $('#tab-cli [data-excluir]').forEach((b) => b.onclick = async () => {
       if (!confirmar('Inativar este cliente? O histórico será mantido.')) return;
       await withLoading(async () => { await del(`/api/clientes/${b.dataset.excluir}`); toast('Cliente inativado', 'ok'); carregar(busca); });
     });
@@ -1362,6 +1369,13 @@ async function paginaSalas() {
         <td>${s.ativa ? '<span class="tag st-confirmado">Ativa</span>' : '<span class="tag st-cancelado">Inativa</span>'}</td></tr>`).join('')}
       </tbody></table></div></div>
   `, 'salas');
+  $('#tab-usu [data-excluir-usuario]').forEach((b) => b.onclick = async () => {
+    if (!confirmar('Excluir este usuario permanentemente?')) return;
+    await withLoading(async () => {
+      try { await del('/api/usuarios/' + b.dataset.excluirUsuario); toast('Usuario excluido', 'ok'); location.reload(); }
+      catch (e) { toast(e.message || 'Erro ao excluir', 'erro'); }
+    });
+  });
   $('#btn-novo').onclick = () => {
     const m = UI.modal(`<h2>Nova sala</h2><form id="f">
       <label>Nome *<input name="nome" required></label>
@@ -1593,11 +1607,12 @@ async function paginaUsuarios() {
       <div class="acoes"><button class="btn btn-primario" id="btn-novo">+ Novo usuário</button></div>
     </div>
     <div class="card"><div class="tabela-responsiva">
-      <table><thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Profissional vinculado</th><th>Status</th></tr></thead><tbody>
+      <table><thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Profissional vinculado</th><th>Status</th><th>Ações</th></tr></thead><tbody>
       ${usuarios.map((u) => `<tr>
         <td><b>${esc(u.nome)}</b></td><td>${esc(u.email)}</td><td>${esc(u.perfil)}</td>
         <td>${esc(u.profissional || '—')}</td>
         <td>${u.ativo ? '<span class="tag st-confirmado">Ativo</span>' : '<span class="tag st-cancelado">Inativo</span>'}</td>
+        <td><button class="btn mini btn-sec" data-editar-usuario="${u.id}">Editar</button> <button class="btn mini btn-perigo" data-excluir-usuario="${u.id}">Excluir</button></td>
       </tr>`).join('')}</tbody></table></div></div>
   `, 'usuarios');
 
