@@ -1,4 +1,4 @@
-﻿/* ========================================
+/* ========================================
    DESIGN TECH NEON - CORPORATE FUTURISTA
    Fundo tecnológico + Rede neon + Foto destaque
    ======================================== */
@@ -986,3 +986,89 @@ header .logo {
 
 a.tel-whats{color:#25D366!important;text-decoration:none!important;font-weight:600;transition:all .2s ease;}
 a.tel-whats:hover{color:#128C7E!important;text-decoration:underline!important;}
+
+/* ========================================
+   RESPONSIVO - CELULAR (< 768px)
+   ======================================== */
+
+@media screen and (max-width: 768px) {
+  /* Remove o layout split no mobile */
+  .tela-login,
+  .auth-wrap {
+    flex-direction: column !important;
+    min-height: 100vh;
+  }
+
+  /* Esconde a foto no mobile (ou deixa pequena no topo) */
+  .tela-login::before,
+  .auth-wrap::before {
+    width: 100% !important;
+    height: 30% !important;
+    position: relative !important;
+  }
+
+  .tela-login::after,
+  .auth-wrap::after {
+    display: none !important;
+  }
+
+  /* Card de login ocupa toda a largura */
+  .tela-login .caixa-login,
+  .auth-wrap .auth-card {
+    position: relative !important;
+    margin: 0 auto !important;
+    margin-top: 20px !important;
+    width: 90% !important;
+    max-width: 400px !important;
+    padding: 25px !important;
+    box-shadow: 0 0 40px rgba(0, 177, 197, 0.4) !important;
+  }
+
+  /* Ajusta tamanhos de texto */
+  .tela-login .caixa-login h1,
+  .auth-wrap .auth-card h2 {
+    font-size: 22px !important;
+    letter-spacing: 1px !important;
+  }
+
+  .tela-login .caixa-login .logo,
+  .auth-wrap .auth-logo {
+    font-size: 20px !important;
+  }
+
+  /* Ajusta inputs para mobile */
+  .tela-login .caixa-login input,
+  .auth-wrap .auth-card input {
+    padding: 14px !important;
+    font-size: 16px !important;
+  }
+
+  /* Ajusta botão ENTRAR */
+  .tela-login .caixa-login .btn-primario,
+  .auth-wrap .auth-card .btn-primario {
+    padding: 16px !important;
+    font-size: 16px !important;
+    letter-spacing: 2px !important;
+  }
+
+  /* Ajusta links */
+  .tela-login .caixa-login .auth-links a,
+  .auth-wrap .auth-card .auth-links a {
+    font-size: 14px !important;
+  }
+
+  /* Remove glow excessivo no mobile */
+  .tela-login .caixa-login::before,
+  .auth-wrap .auth-card::before {
+    display: none !important;
+  }
+}
+
+/* Tablet (768px - 1024px) */
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+  .tela-login .caixa-login,
+  .auth-wrap .auth-card {
+    width: 45% !important;
+    padding: 30px !important;
+  }
+}
