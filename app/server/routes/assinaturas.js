@@ -292,7 +292,7 @@ async function contratar(req, res, usuario) {
 }
 async function alterarStatusAssinatura(req, res, usuario, id) {
   const c = await lerCorpo(req);
-  const permitidos = ['ativa', 'cancelada', 'cancelamento_solicitado', 'expirada'];
+  const permitidos = ['pendente', 'ativa', 'cancelada', 'cancelamento_solicitado', 'expirada'];
   if (!permitidos.includes(c.status)) return erro(res, 400, 'Status inválido.');
   const atual = db.prepare('SELECT * FROM subscriptions WHERE id = ?').get(id);
   if (!atual) return erro(res, 404, 'Assinatura não encontrada');
