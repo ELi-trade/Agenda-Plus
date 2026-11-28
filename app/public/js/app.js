@@ -2134,7 +2134,7 @@ async function paginaClube() {
       ${assinaturas.map((a) => `<tr><td>${esc(a.cliente)}</td><td>${esc(a.plano)}</td><td>${centavos(a.mensalidade_centavos)}</td>
         <td><span class="tag-assin ${a.status}">${({ pendente: 'Pendente', ativa: 'Ativa', cancelada: 'Cancelada', cancelamento_solicitado: 'Cancel. solicitado', expirada: 'Expirada' }[a.status] || a.status)}</span></td>
         <td>${a.inicio_em ? fmtData(a.inicio_em) : '—'}</td>
-        <td><button class="btn mini btn-sec" data-ver="${a.id}">Detalhes</button></td></tr>`).join('') || '<tr><td colspan="6" class="vazio">Nenhuma assinatura.</td></tr>'}
+        <td><button class="btn mini btn-sec" data-ver="${a.id}">Detalhes</button><td>${a.status !== 'ativa' ? '<button class="btn mini btn-perigo" data-excluir-assinatura="${a.id}">Excluir</button>' : ''}</td></tr>`).join('') || '<tr><td colspan="6" class="vazio">Nenhuma assinatura.</td></tr>'}
       </tbody></table></div>
     </section>
     <section class="dash-section"><h2>Serviços mais utilizados</h2><div class="card">${ind.servicos_mais_utilizados.map((s) => `<div class="linha-uso"><span>${esc(s.servico)}</span><b>${s.vezes} utilização(ões)</b></div>`).join('') || '<div class="vazio">Sem utilização registrada.</div>'}</div></section>
@@ -2158,6 +2158,13 @@ async function paginaClube() {
       catch (e) { toast(e.message, 'erro'); }
     });
   });
+    $$('[data-excluir-assinatura]').forEach((b) => b.onclick = async () => {
+      if (!confirmar('Excluir esta assinatura?')) return;
+      await withLoading(async () => {
+        try { await del('/api/clube/assinaturas/' + b.dataset.excluirAssinatura); toast('Assinatura excluída.', 'ok'); paginaClube(); }
+        catch (e) { toast(e.message, 'erro'); }
+      });
+    });
   $$('[data-ver]').forEach((b) => b.onclick = async () => {
     const a = await get(`/api/clube/assinaturas/${b.dataset.ver}`);
     modalAssinatura(a);
