@@ -184,6 +184,9 @@ async function tratarAPI(req, res, pathname, usuario) {
     const mCheckout = pathname.match(/^\/api\/clube\/cliente\/checkout\/(\d+)$/);
     if (mCheckout && metodo === 'GET') return club.consultarCheckout(req, res, Number(mCheckout[1]));
     if (mCheckout && metodo === 'POST') return club.informarPagamentoAssinatura(req, res);
+    const mCheckout = pathname.match(/^\/api\/clube\/cliente\/checkout\/(\d+)$/);
+    if (mCheckout && metodo === 'GET') return club.consultarCheckout(req, res, Number(mCheckout[1]));
+    if (mCheckout && metodo === 'POST') return club.informarPagamentoAssinatura(req, res);
     // painel administrativo
     if (!temPermissao(usuario, 'financeiro')) return erro(res, 403, 'Sem permissão para o clube de assinaturas');
     if (metodo === 'GET' && id === 'planos' && !sub) return club.listarPlanos(req, res);

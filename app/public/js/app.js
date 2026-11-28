@@ -574,7 +574,7 @@ async function paginaClubeCliente() {
         ${a.status === 'ativa' || a.status === 'pendente' ? `<button class="btn btn-perigo" id="cancelar-assinatura">Solicitar cancelamento</button>` : ''}
       </section>` : '') +
       '<section class="dash-section"><h2>Planos disponíveis</h2><div class="planos-grid">' + cardsPlanos + '</div></section>' +
-      '</main></div>';
+      '<div style="margin-top:20px;text-align:center;"><a class="btn btn-sec" href="/#/minha-conta">← Voltar</a></div></main></div>';
 
     $('#sair-cliente').onclick = async () => {
       try { await postCliente('/api/cliente/logout', {}); } catch { }
