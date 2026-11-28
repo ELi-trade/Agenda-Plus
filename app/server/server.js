@@ -198,8 +198,12 @@ async function tratarAPI(req, res, pathname, usuario) {
     if (metodo === 'POST' && mClube) {
       return mClube[2] === 'status'
         ? club.alterarStatusAssinatura(req, res, usuario, Number(mClube[1]))
-        : club.confirmarPagamento(req, res, usuario, Number(mClube[1]));
+        : club.confirmarPagamentoAssinatura(req, res, usuario, Number(mClube[1]));
     }
+    const mPix = pathname.match(/^\/api\/clube\/assinaturas\/(\d+)\/pix$/);
+    if (metodo === 'GET' && mPix) return club.obterPixAssinatura(req, res, usuario, Number(mPix[1]));
+    const mUso = pathname.match(/^\/api\/clube\/assinaturas\/(\d+)\/uso$/);
+    if (metodo === 'POST' && mUso) return club.ajustarUsoRota(req, res, usuario, Number(mUso[1]));
     if (metodo === 'POST' && id === 'assinaturas' && !sub) return club.contratar(req, res, usuario);
     if (metodo === 'DELETE' && id === 'assinaturas' && sub) return club.excluirAssinatura(req, res, usuario, Number(sub));
     return erro(res, 404, 'Rota do clube não encontrada');

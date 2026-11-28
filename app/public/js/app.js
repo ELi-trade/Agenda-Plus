@@ -585,7 +585,8 @@ async function paginaClubeCliente() {
       await withLoading(async () => {
         const r = await postCliente('/api/cliente/clube/contratar', { plano_id: Number(b.dataset.contratar) });
         toast(r.mensagem || 'Plano contratado!', 'ok');
-        paginaClubeCliente();
+        if (r.checkout) mostrarCheckoutPix(r.checkout, r.id, 'Pague a mensalidade do seu plano via Pix. Os benefícios são liberados assim que a clínica confirmar o pagamento.');
+        else paginaClubeCliente();
       });
     });
     const btnCancelar = $('#cancelar-assinatura');
@@ -2289,10 +2290,15 @@ async function modalAssinatura(a) {
     </div>
     <h3>Ciclo atual</h3>
     ${a.ciclo ? `<p>${fmtData(a.ciclo.inicio_em)} a ${fmtData(a.ciclo.fim_em)} · ${statusLabels[a.ciclo.status] ? ({ aguardando_pagamento: 'Aguardando pagamento', ativo: 'Ativo', expirado: 'Expirado', cancelado: 'Cancelado' }[a.ciclo.status]) : esc(a.ciclo.status)}</p>
-      ${a.ciclo.status === 'aguardando_pagamento' ? '<button class="btn btn-primario" id="as-pagar">Confirmar pagamento da mensalidade</button>' : ''}` : '<p class="vazio">Nenhum ciclo ainda.</p>'}
-    <h3>Benefícios do ciclo</h3>
-    <div class="tabela-responsiva"><table><thead><tr><th>Serviço</th><th>Contratado</th><th>Usados</th><th>Reservados</th><th>Restantes</th></tr></thead><tbody>
-    ${a.beneficios.map((b) => `<tr><td>${esc(b.servico)}</td><td>${b.quantidade}</td><td>${b.usados}</td><td>${b.reservados}</td><td><b>${b.quantidade - b.usados - b.reservados}</b></td></tr>`).join('') || '<tr><td colspan="5" class="vazio">—</td></tr>'}
+      ${a.ciclo.status === 'aguardando_pagamento' ? `<div class="linha" style="align-items:center"><button class="btn btn-primario" id="as-pagar">Confirmar pagamento da mensalidade</button><button class="btn btn-sec" id="as-ver-pix">Ver QR Code Pix</button></div>` : ''}` : '<p class="vazio">Nenhum ciclo ainda.</p>'}
+    <h3>Controle de serviços do ciclo</h3>
+    ${a.ciclo && a.ciclo.status === 'ativo' ? '<p class="texto-fraco">Registre a utilização feita fora da agenda (checkbox) ou devolva um uso registrado por engano.</p>' : ''}
+    <div class="tabela-responsiva"><table><thead><tr><th>Serviço</th><th>Contratado</th><th>Usados</th><th>Reservados</th><th>Restantes</th>${a.ciclo && a.ciclo.status === 'ativo' ? '<th>Registrar uso</th>' : ''}</tr></thead><tbody>
+    ${a.beneficios.map((b) => `<tr data-ent="${b.id}"><td>${esc(b.servico)}</td><td>${b.quantidade}</td><td class="uso-usados">${b.usados}</td><td>${b.reservados}</td><td class="uso-restantes"><b>${b.quantidade - b.usados - b.reservados}</b></td>
+      ${a.ciclo && a.ciclo.status === 'ativo' ? `<td class="uso-acoes">
+        <label class="pix-aceite" style="gap:6px"><input type="checkbox" class="uso-check" ${b.usados + b.reservados >= b.quantidade ? 'disabled' : ''}> Usado</label>
+        <button class="btn mini btn-sec uso-devolver" ${b.usados > 0 ? '' : 'disabled'}>Devolver</button>
+      </td>` : ''}</tr>`).join('') || '<tr><td colspan="6" class="vazio">—</td></tr>'}
     </tbody></table></div>
     <h3>Pagamentos</h3>
     <div class="tabela-responsiva"><table><thead><tr><th>Valor</th><th>Status</th><th>Vencimento/ciclo</th><th>Pago em</th></tr></thead><tbody>
@@ -2310,11 +2316,63 @@ async function modalAssinatura(a) {
       toast('Status atualizado.', 'ok'); m.remove(); paginaClube();
     });
   };
+  // Controle manual de uso por serviço (admin)
+  $$('.uso-check', m).forEach((chk) => chk.onchange = async () => {
+    if (!chk.checked) { chk.checked = true; return; } // só registra; para desfazer use "Devolver"
+    const linha = chk.closest('tr');
+    chk.disabled = true;
+    await withLoading(async () => {
+      try {
+        const r = await post(`/api/clube/assinaturas/${a.id}/uso`, { entitlement_id: Number(linha.dataset.ent), acao: 'consumir' });
+        $('.uso-usados', linha).textContent = r.usados;
+        $('.uso-restantes', linha).innerHTML = `<b>${r.quantidade - r.usados - r.reservados}</b>`;
+        $('.uso-devolver', linha).disabled = r.usados <= 0;
+        if (r.usados + r.reservados >= r.quantidade) { chk.disabled = true; } else { chk.disabled = false; chk.checked = false; }
+        toast('Utilização registrada no ciclo.', 'ok');
+      } catch (e) { toast(e.message, 'erro'); chk.checked = false; chk.disabled = false; }
+    });
+  });
+  $$('.uso-devolver', m).forEach((btn) => btn.onclick = async () => {
+    const linha = btn.closest('tr');
+    if (!confirmar('Devolver uma utilização deste serviço ao saldo do ciclo?')) return;
+    await withLoading(async () => {
+      try {
+        const r = await post(`/api/clube/assinaturas/${a.id}/uso`, { entitlement_id: Number(linha.dataset.ent), acao: 'devolver' });
+        $('.uso-usados', linha).textContent = r.usados;
+        $('.uso-restantes', linha).innerHTML = `<b>${r.quantidade - r.usados - r.reservados}</b>`;
+        btn.disabled = r.usados <= 0;
+        toast('Utilização devolvida ao saldo.', 'ok');
+      } catch (e) { toast(e.message, 'erro'); }
+    });
+  });
   const pagar = $('#as-pagar', m);
   if (pagar) pagar.onclick = async () => {
     await withLoading(async () => {
-      await post(`/api/clube/assinaturas/${a.id}/pagamento`, {});
-      toast('Pagamento confirmado e ciclo ativado.', 'ok'); m.remove(); paginaClube();
+      const r = await post(`/api/clube/assinaturas/${a.id}/pagamento`, {});
+      toast(r.mensagem || 'Pagamento confirmado e ciclo ativado.', 'ok'); m.remove(); paginaClube();
+    });
+  };
+  const btnPix = $('#as-ver-pix', m);
+  if (btnPix) btnPix.onclick = async () => {
+    await withLoading(async () => {
+      try {
+        const pix = await get(`/api/clube/assinaturas/${a.id}/pix`);
+        UI.modal(`
+          <h2>Pix da mensalidade · ${esc(a.cliente)}</h2>
+          <p>Valor: <b>${centavos(pix.valor_centavos)}</b>${pix.cliente_informou_em ? ' · <span class="tag-assin pendente">Cliente avisou que pagou</span>' : ''}</p>
+          ${pix.pix_qr_data_uri ? `<div style="text-align:center;padding:12px;"><img src="${pix.pix_qr_data_uri}" alt="QR Pix da mensalidade" style="max-width:260px;"></div>` : '<p class="vazio">QR indisponível.</p>'}
+          <label>Pix Copia e Cola<textarea readonly rows="4">${esc(pix.pix_copia_e_cola || '')}</textarea></label>
+          <button type="button" class="btn btn-sec" id="pix-admin-copiar" style="width:100%">Copiar código Pix</button>
+          <div class="modal-rodape"><button type="button" class="btn btn-sec" id="pix-admin-fechar">Fechar</button></div>
+        `);
+        const btnCopiar2 = $('#pix-admin-copiar');
+        if (btnCopiar2) btnCopiar2.onclick = async () => {
+          try { await navigator.clipboard.writeText(pix.pix_copia_e_cola || ''); toast('Código copiado!', 'ok'); }
+          catch { toast('Não foi possível copiar.', 'erro'); }
+        };
+        const btnFechar2 = $('#pix-admin-fechar');
+        if (btnFechar2) btnFechar2.onclick = () => { const dlg = btnFechar2.closest('.modal, .modal-fundo, [role=dialog]') || btnFechar2.parentElement; dlg.remove(); };
+      } catch (e) { toast(e.message || 'Sem Pix pendente.', 'info'); }
     });
   };
 }

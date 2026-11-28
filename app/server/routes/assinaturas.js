@@ -127,6 +127,45 @@ function liberar(agendamentoId) {
   }
   return usos.length > 0;
 }
+// Ajuste manual de uso: admin registra ou devolve uma utilização fora da agenda.
+function ajustarUso(assinaturaId, entitlementId, acao, usuarioId) {
+  const ent = db.prepare(`
+    SELECT e.* FROM subscription_entitlements e
+    JOIN subscription_cycles c ON c.id = e.ciclo_id
+    WHERE e.id = ? AND c.assinatura_id = ?
+  `).get(Number(entitlementId), Number(assinaturaId));
+  if (!ent) throw new ValidationError('Benefício não encontrado nesta assinatura.');
+  if (acao === 'consumir') {
+    if (ent.usados + ent.reservados >= ent.quantidade) throw new ValidationError('Sem saldo disponível para este serviço neste ciclo.');
+    db.prepare('UPDATE subscription_entitlements SET usados = usados + 1 WHERE id = ?').run(ent.id);
+  } else {
+    if (ent.usados <= 0) throw new ValidationError('Nenhuma utilização para devolver neste serviço.');
+    db.prepare('UPDATE subscription_entitlements SET usados = usados - 1 WHERE id = ?').run(ent.id);
+  }
+  db.prepare(`INSERT INTO subscription_usage (entitlement_id, cliente_id, servico_id, acao, detalhes)
+              VALUES (?, ?, ?, ?, ?)`)
+    .run(ent.id, entCicloCliente(assinaturaId), ent.servico_id,
+      acao === 'consumir' ? 'consumido' : 'liberado',
+      JSON.stringify({ manual: true, por: usuarioId }));
+  const atual = db.prepare('SELECT * FROM subscription_entitlements WHERE id = ?').get(ent.id);
+  auditar(acao === 'consumir' ? 'uso_manual' : 'devolucao_manual', { usuarioId, entidade: 'entitlement', entidadeId: ent.id, detalhes: { usados: atual.usados } });
+  return atual;
+}
+function entCicloCliente(assinaturaId) {
+  const a = db.prepare('SELECT cliente_id FROM subscriptions WHERE id = ?').get(assinaturaId);
+  return a ? a.cliente_id : null;
+}
+// Checkout Pix de um ciclo, para o admin conferir/encaminhar ao cliente.
+function checkoutPixAdmin(assinaturaId) {
+  const ciclo = cicloAtivo(assinaturaId);
+  if (!ciclo || ciclo.status !== 'aguardando_pagamento') return null;
+  const pg = db.prepare(`SELECT * FROM subscription_payments WHERE assinatura_id = ? AND ciclo_id = ? AND status = 'pendente' ORDER BY id DESC LIMIT 1`).get(assinaturaId, ciclo.id);
+  if (pg && pg.pix_qr_data_uri) return pg;
+  const plano = db.prepare(`SELECT sp.* FROM subscription_plans sp JOIN subscriptions su ON su.plano_id = sp.id WHERE su.id = ?`).get(assinaturaId);
+  if (!plano) return null;
+  const gerado = gerarCheckoutAssinatura(assinaturaId, ciclo.id, plano.mensalidade_centavos, 'Mensalidade ' + plano.nome + ' - ciclo ' + ciclo.id);
+  return db.prepare('SELECT * FROM subscription_payments WHERE assinatura_id=? AND ciclo_id=? AND status=?').get(assinaturaId, ciclo.id, 'pendente') || gerado;
+}
 function pagarCiclo(cicloId, usuarioId) {
   const ciclo = db.prepare('SELECT * FROM subscription_cycles WHERE id = ?').get(cicloId);
   if (!ciclo) throw new ValidationError('Ciclo não encontrado');
@@ -306,6 +345,39 @@ async function confirmarPagamento(req, res, usuario, cicloId) {
   catch (e) { return erro(res, e instanceof ValidationError ? 400 : 500, e.message); }
   json(res, 200, { ok: true });
 }
+// Confirma o pagamento pelo id da ASSINATURA (usa o ciclo aguardando pagamento mais recente).
+async function confirmarPagamentoAssinatura(req, res, usuario, assinaturaId) {
+  const ciclo = cicloAtivo(Number(assinaturaId));
+  if (!ciclo) return erro(res, 404, 'Nenhum ciclo para esta assinatura.');
+  if (ciclo.status !== 'aguardando_pagamento') return erro(res, 409, 'Este ciclo não está aguardando pagamento.');
+  try { pagarCiclo(ciclo.id, usuario.id); }
+  catch (e) { return erro(res, e instanceof ValidationError ? 400 : 500, e.message); }
+  json(res, 200, { ok: true, mensagem: 'Pagamento confirmado e ciclo ativado.' });
+}
+// GET /api/clube/assinaturas/:id/pix — QR Pix do ciclo pendente para conferência do admin.
+async function obterPixAssinatura(req, res, _u, assinaturaId) {
+  try {
+    const pg = checkoutPixAdmin(Number(assinaturaId));
+    if (!pg) return erro(res, 404, 'Nenhum pagamento Pix pendente para esta assinatura.');
+    json(res, 200, {
+      valor_centavos: pg.valor_centavos,
+      pix_copia_e_cola: pg.pix_copia_e_cola,
+      pix_qr_data_uri: pg.pix_qr_data_uri,
+      expira_em: pg.expira_em,
+      cliente_informou_em: pg.cliente_informou_em,
+      status: pg.status,
+    });
+  } catch (e) { return erro(res, e instanceof ValidationError ? 400 : 500, e.message); }
+}
+// POST /api/clube/assinaturas/:id/uso { entitlement_id, acao: 'consumir'|'devolver' }
+async function ajustarUsoRota(req, res, usuario, assinaturaId) {
+  const c = await lerCorpo(req);
+  if (!['consumir', 'devolver'].includes(c.acao)) return erro(res, 400, 'Ação inválida.');
+  try {
+    const ent = ajustarUso(Number(assinaturaId), c.entitlement_id, c.acao, usuario.id);
+    json(res, 200, { ok: true, usados: ent.usados, reservados: ent.reservados, quantidade: ent.quantidade });
+  } catch (e) { return erro(res, e instanceof ValidationError ? 400 : 500, e.message); }
+}
 async function indicadores(_req, res) {
   const ativosPorPlano = db.prepare(`
     SELECT sp.nome AS plano, COUNT(*) AS total
@@ -394,6 +466,7 @@ async function contratarCliente(req, res) {
   }
   const inicio = hojeISO();
   let assinaturaId = existente ? existente.id : null;
+  let ciclo = null;
   db.transaction(() => {
     if (!assinaturaId) {
       assinaturaId = db.prepare(`INSERT INTO subscriptions (plano_id, cliente_id, status) VALUES (?, ?, 'pendente')`)
@@ -401,10 +474,21 @@ async function contratarCliente(req, res) {
     } else {
       db.prepare(`UPDATE subscriptions SET status='pendente', cancelada_em=NULL, atualizado_em=datetime('now') WHERE id=?`).run(assinaturaId);
     }
-    criarCiclo(assinaturaId, plano, inicio);
+    ciclo = criarCiclo(assinaturaId, plano, inicio);
     auditar('contratacao_cliente', { clienteId: cliente.id, entidade: 'assinatura', entidadeId: assinaturaId, detalhes: { plano: plano.nome } });
   })();
-  json(res, 201, { id: assinaturaId, mensagem: 'Assinatura registrada. Confirme o pagamento da mensalidade para ativar os benefícios.' });
+  // Gera o checkout Pix imediatamente para que o cliente pague a mensalidade do primeiro ciclo.
+  let checkout = null;
+  try {
+    checkout = gerarCheckoutAssinatura(assinaturaId, ciclo.id, plano.mensalidade_centavos, 'Mensalidade ' + plano.nome + ' - ciclo ' + ciclo.id);
+  } catch (e) {
+    // Sem chave Pix configurada o cliente ainda pode contratar; a clínica registra o pagamento manualmente.
+  }
+  json(res, 201, {
+    id: assinaturaId,
+    mensagem: 'Assinatura registrada. Pague a mensalidade via Pix para ativar os benefícios.',
+    checkout: checkout ? { ...checkout, assinatura_id: assinaturaId } : null,
+  });
 }
 async function cancelarCliente(req, res) {
   const { clienteDaRequisicao } = require('../core');
@@ -484,7 +568,7 @@ async function excluirAssinatura(req, res, usuario, id) {
 module.exports = {
   listarPlanos, salvarPlano, ativarPlano, excluirPlano,
   listarAssinaturas, obterAssinatura, contratar, alterarStatusAssinatura, excluirAssinatura,
-  confirmarPagamento, indicadores,
+  confirmarPagamento, confirmarPagamentoAssinatura, obterPixAssinatura, ajustarUsoRota, indicadores,
   clubeCliente, contratarCliente, consultarCheckout, informarPagamentoAssinatura, cancelarCliente, planosPublicos,
   elegibilidade, aoCriarAgendamento, aoFinalizarAgendamento, aoCancelarAgendamento,
   resumoPlano, criarCiclo, pagarCiclo, hojeISO,
