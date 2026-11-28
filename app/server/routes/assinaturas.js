@@ -4,6 +4,8 @@
 
 const { db, hashSenha } = require('../db/database');
 const { json, erro, lerCorpo, temPermissao, validarData, ValidationError } = require('../core');
+const { gerarPixEstatico, qrDataUri } = require('../pagamentos/pix-brcode');
+const crypto = require('crypto');
 
 // ==================== Utilidades ====================
 function hojeISO() {
@@ -12,8 +14,11 @@ function hojeISO() {
 }
 function somarMeses(iso, meses) {
   const [ano, mes, dia] = iso.split('-').map(Number);
-  const alvo = new Date(Date.UTC(ano, mes - 1 + meses, Math.min(dia, 28)));
-  return alvo.toISOString().slice(0, 10);
+  const alvoAno = ano + Math.floor((mes - 1 + meses) / 12);
+  const alvoMes = ((mes - 1 + meses) % 12 + 12) % 12 + 1;
+  const ultimoDia = new Date(Date.UTC(alvoAno, alvoMes, 0)).getUTCDate();
+  const alvoDia = Math.min(dia, ultimoDia);
+  return `${alvoAno}-${String(alvoMes).padStart(2, '0')}-${String(alvoDia).padStart(2, '0')}`;
 }
 function auditar(acao, { usuarioId = null, clienteId = null, entidade = null, entidadeId = null, detalhes = null } = {}) {
   db.prepare('INSERT INTO subscription_audit_logs (usuario_id, cliente_id, acao, entidade, entidade_id, detalhes) VALUES (?, ?, ?, ?, ?, ?)')
@@ -82,17 +87,19 @@ function elegibilidade(clienteId, servicoId) {
   return { assinatura, ciclo, ent, servico, tipo: 'sem_beneficio' };
 }
 
-// Reserva temporária (agendamento pendente/confirmado) — atômico por UPDATE condicional.
+// Reserva temporária (agendamento pendente/confirmado) — atômica: UPDATE condicional + registro de uso numa única transação.
 function reservar(cicloId, servicoId, clienteId, agendamentoId) {
-  const r = db.prepare(`
-    UPDATE subscription_entitlements SET reservados = reservados + 1
-    WHERE ciclo_id = ? AND servico_id = ? AND usados + reservados < quantidade
-  `).run(cicloId, servicoId);
-  if (!r.changes) throw new ValidationError('Benefício indisponível para este serviço neste ciclo.');
-  db.prepare(`INSERT INTO subscription_usage (entitlement_id, agendamento_id, cliente_id, servico_id, acao, detalhes)
-              VALUES (?, ?, ?, ?, 'reservado', ?)`)
-    .run(db.prepare('SELECT id FROM subscription_entitlements WHERE ciclo_id=? AND servico_id=?').get(cicloId, servicoId).id,
-      agendamentoId, clienteId, servicoId, JSON.stringify({ agendamento_id: agendamentoId }));
+  db.transaction(() => {
+    const r = db.prepare(`
+      UPDATE subscription_entitlements SET reservados = reservados + 1
+      WHERE ciclo_id = ? AND servico_id = ? AND usados + reservados < quantidade
+    `).run(cicloId, servicoId);
+    if (!r.changes) throw new ValidationError('Benefício indisponível para este serviço neste ciclo.');
+    db.prepare(`INSERT INTO subscription_usage (entitlement_id, agendamento_id, cliente_id, servico_id, acao, detalhes)
+                VALUES (?, ?, ?, ?, 'reservado', ?)`)
+      .run(db.prepare('SELECT id FROM subscription_entitlements WHERE ciclo_id=? AND servico_id=?').get(cicloId, servicoId).id,
+        agendamentoId, clienteId, servicoId, JSON.stringify({ agendamento_id: agendamentoId }));
+  })();
 }
 // Confirma o consumo definitivo (após finalizado).
 function consumir(agendamentoId) {
@@ -234,6 +241,31 @@ async function obterAssinatura(_req, res, _u, id) {
   if (!a) return erro(res, 404, 'Assinatura não encontrada');
   json(res, 200, a);
 }
+function gerarCheckoutAssinatura(assinaturaId, cicloId, valorCentavos, descricao) {
+  const config = db.prepare("SELECT valor FROM configuracoes WHERE chave='chave_pix'").get();
+  const chavePix = config ? config.valor : '';
+  if (!chavePix) throw new ValidationError('Chave Pix do estabelecimento não configurada.');
+  const checkoutToken = crypto.randomBytes(32).toString('hex');
+  const txid = 'ASS' + assinaturaId + 'C' + cicloId;
+  const expiraEm = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  const pixCopiaECola = gerarPixEstatico(chavePix, valorCentavos / 100, txid, descricao);
+  const qr = qrDataUri(pixCopiaECola);
+  const hash = crypto.createHash('sha256').update(checkoutToken).digest('hex');
+  db.prepare('UPDATE subscription_payments SET checkout_token_hash=?, expira_em=?, pix_copia_e_cola=?, pix_qr_data_uri=? WHERE assinatura_id=? AND ciclo_id=?')
+    .run(hash, expiraEm, pixCopiaECola, qr, assinaturaId, cicloId);
+  return { checkoutToken, pixCopiaECola, pixQrDataUri: qr, expiraEm };
+}
+
+function consultarCheckoutAssinatura(token, assinaturaId) {
+  const hash = crypto.createHash('sha256').update(token).digest('hex');
+  const pg = db.prepare('SELECT * FROM subscription_payments WHERE assinatura_id=? AND checkout_token_hash=?').get(assinaturaId, hash);
+  if (!pg) return null;
+  if (pg.status === 'pendente' && !pg.cliente_informou_em && Date.now() >= Date.parse(pg.expira_em)) {
+    db.prepare("UPDATE subscription_payments SET status='expirado' WHERE id=? AND status='pendente'").run(pg.id);
+    pg.status = 'expirado';
+  }
+  return pg;
+}
 async function contratar(req, res, usuario) {
   const c = await lerCorpo(req);
   const plano = db.prepare('SELECT * FROM subscription_plans WHERE id = ? AND ativo = 1').get(Number(c.plano_id));
@@ -306,6 +338,11 @@ async function indicadores(_req, res) {
     beneficios_usados: usados,
     beneficios_disponiveis: disponiveis,
   });
+}
+
+// ==================== Público (agendamento online) ====================
+async function planosPublicos(_req, res) {
+  json(res, 200, db.prepare('SELECT * FROM subscription_plans WHERE ativo = 1 ORDER BY mensalidade_centavos').all().map(resumoPlano));
 }
 
 // ==================== Área do cliente ====================
@@ -402,11 +439,41 @@ function aoCriarAgendamento(agendamento) {
 function aoFinalizarAgendamento(agendamentoId) { return consumir(agendamentoId); }
 function aoCancelarAgendamento(agendamentoId) { return liberar(agendamentoId); }
 
+// ==================== Checkout Pix para assinaturas ====================
+async function consultarCheckout(req, res) {
+  const token = new URL(req.url, 'http://x').searchParams.get('token');
+  const assinaturaId = Number(req.url.split('/').pop());
+  if (!token || !assinaturaId) return erro(res, 400, 'Parâmetros inválidos.');
+  const pg = consultarCheckoutAssinatura(token, assinaturaId);
+  if (!pg) return erro(res, 404, 'Checkout não encontrado.');
+  const sub = db.prepare('SELECT status FROM subscriptions WHERE id=?').get(assinaturaId);
+  json(res, 200, {
+    status: pg.status,
+    statusAssinatura: sub ? sub.status : 'cancelada',
+    valor_centavos: pg.valor_centavos,
+    expira_em: pg.expira_em,
+    pix_copia_e_cola: pg.pix_copia_e_cola,
+    pix_qr_data_uri: pg.pix_qr_data_uri,
+    cliente_informou_em: pg.cliente_informou_em,
+  });
+}
+
+async function informarPagamentoAssinatura(req, res) {
+  const corpo = await lerCorpo(req);
+  const token = corpo.token;
+  const assinaturaId = Number(corpo.assinatura_id);
+  if (!token || !assinaturaId) return erro(res, 400, 'Parâmetros inválidos.');
+  const pg = consultarCheckoutAssinatura(token, assinaturaId);
+  if (!pg) return erro(res, 404, 'Checkout não encontrado.');
+  if (pg.status !== 'pendente') return erro(res, 409, 'Este checkout não está pendente.');
+  db.prepare("UPDATE subscription_payments SET cliente_informou_em=datetime('now') WHERE id=?").run(pg.id);
+  json(res, 200, { ok: true, mensagem: 'Aviso registrado. A clínica confirmará em breve.' });
+}
 module.exports = {
   listarPlanos, salvarPlano, ativarPlano, excluirPlano,
   listarAssinaturas, obterAssinatura, contratar, alterarStatusAssinatura,
   confirmarPagamento, indicadores,
-  clubeCliente, contratarCliente, cancelarCliente,
+  clubeCliente, contratarCliente, consultarCheckout, informarPagamentoAssinatura, cancelarCliente, planosPublicos,
   elegibilidade, aoCriarAgendamento, aoFinalizarAgendamento, aoCancelarAgendamento,
   resumoPlano, criarCiclo, pagarCiclo, hojeISO,
 };

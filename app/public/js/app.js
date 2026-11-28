@@ -484,6 +484,54 @@ async function paginaContaCliente() {
 }
 
 // ==================== MEU CLUBE DE ASSINATURAS (CLIENTE) ====================
+function mostrarCheckoutPix(checkout, planoId, mensagem) {
+  const m = UI.modal(`
+    <h2>Pagamento via Pix</h2>
+    <p class='texto-fraco'>${esc(mensagem || 'Escaneie o QR Code ou copie o código abaixo.')}</p>
+    <div id='pix-qr-container' style='text-align:center;padding:20px;'><img src='${checkout.pixQrDataUri}' alt='QR Pix' style='max-width:280px;'></div>
+    <div style='background:#f5f5f5;padding:12px;border-radius:8px;word-break:break-all;font-family:monospace;font-size:12px;margin:12px 0;'>${esc(checkout.pixCopiaECola)}</div>
+    <button class='btn btn-sec' id='pix-copiar' style='width:100%'>Copiar código Pix</button>
+    <button class='btn btn-primario' id='pix-ja-paguei' style='width:100%;margin-top:10px'>Já paguei</button>
+    <p class='texto-fraco' style='text-align:center;margin-top:12px;font-size:12px;'>A clínica confirmará em até 5 minutos. Esta tela atualiza automaticamente.</p>
+    <div class='modal-rodape'><button class='btn btn-sec' id='pix-fechar'>Fechar</button></div>
+  `);
+  $('#pix-copiar', m).onclick = async () => {
+    try { await navigator.clipboard.writeText(checkout.pixCopiaECola); toast('Código copiado!', 'ok'); }
+    catch { toast('Não foi possível copiar.', 'erro'); }
+  };
+  $('#pix-ja-paguei', m).onclick = async () => {
+    await withLoading(async () => {
+      try {
+        await postCliente('/api/clube/cliente/checkout/' + checkout.assinatura_id + '/informar', { token: checkout.checkoutToken, assinatura_id: checkout.assinatura_id });
+        toast('Aviso registrado. Aguardando confirmação.', 'ok');
+        $('#pix-ja-paguei', m).disabled = true;
+        $('#pix-ja-paguei', m).textContent = 'Aviso enviado';
+      } catch (e) { toast(e.message || 'Erro', 'erro'); }
+    });
+  };
+  $('#pix-fechar', m).onclick = () => { if (pollingPix) clearInterval(pollingPix); m.remove(); paginaClubeCliente(); };
+  let tentativas = 0;
+  const pollingPix = setInterval(async () => {
+    tentativas++;
+    try {
+      const r = await getCliente('/api/clube/cliente/checkout/' + checkout.assinatura_id + '?token=' + checkout.checkoutToken);
+      if (r.status === 'pago' || r.statusAssinatura === 'ativa') {
+        clearInterval(pollingPix);
+        toast('Pagamento confirmado! Clube ativado.', 'ok');
+        m.remove();
+        paginaClubeCliente();
+      } else if (r.status === 'expirado') {
+        clearInterval(pollingPix);
+        toast('O Pix expirou. Tente contratar novamente.', 'erro');
+        m.remove();
+        paginaClubeCliente();
+      } else if (tentativas >= 12) {
+        clearInterval(pollingPix);
+        toast('Tempo limite. Verifique em Meu Clube.', 'info');
+      }
+    } catch {}
+  }, 5 * 60 * 1000);
+}
 async function paginaClubeCliente() {
   try {
     const cliente = await getCliente('/api/cliente/atual');
@@ -1770,7 +1818,12 @@ async function renderPublico(msg) {
     state.cache.pubConfig = cfg;
     state.cache.pubServicos = servs;
   }
-  const cfg = state.cache.pubConfig, servs = state.cache.pubServicos;
+  if (!state.cache.pubPlanos) {
+    try { state.cache.pubPlanos = await get('/api/publico/planos-clube'); }
+    catch { state.cache.pubPlanos = []; }
+  }
+  const cfg = state.cache.pubConfig, servs = state.cache.pubServicos, planosClube = state.cache.pubPlanos || [];
+  const planoComServico = (servicoId) => planosClube.filter((pl) => pl.itens.some((i) => i.servico_id === servicoId));
 
   $('#app').innerHTML = `
  <div class="pub-body">
@@ -1810,6 +1863,21 @@ async function renderPublico(msg) {
     if (!Number.isInteger(p.categoriaAberta) || p.categoriaAberta >= grupos.length) p.categoriaAberta = 0;
     corpo.innerHTML = `
       <h2>Escolha o serviço</h2>
+      ${planosClube.length ? `
+      <section class="clube-publico">
+        <div class="clube-publico-titulo">★ Clube de Assinaturas <small>mensalidade fixa, serviços incluídos todo mês</small></div>
+        <div class="planos-grid">
+          ${planosClube.map((pl) => `
+            <div class="card plano-card clube-publico-plano">
+              <div class="plano-topo"><h3>${esc(pl.nome)}</h3></div>
+              <div class="plano-preco">${fmtBRL(pl.mensalidade_centavos / 100)}<small>/mês</small></div>
+              ${pl.economia_centavos ? `<div class="plano-meta"><span class="plano-economia">Economize ${fmtBRL(pl.economia_centavos / 100)} por mês</span></div>` : ''}
+              ${pl.desconto_adicional_pct ? `<div class="plano-meta"><span>+ ${pl.desconto_adicional_pct}% de desconto em outros serviços</span></div>` : ''}
+              <div class="plano-itens">${pl.itens.map((i) => `<div><span>${i.quantidade}×</span> ${esc(i.servico)}</div>`).join('')}</div>
+              <a class="btn btn-primario" href="#/login" onclick="sessionStorage.setItem('clube-contratar','${pl.id}')">Assinar</a>
+            </div>`).join('')}
+        </div>
+      </section>` : ''}
       <div class="servicos-catalogo">
         ${grupos.map((grupo, indice) => `
           <details class="servicos-categoria" data-categoria="${indice}" ${indice === p.categoriaAberta ? 'open' : ''}>

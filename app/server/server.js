@@ -67,6 +67,7 @@ async function tratarAPI(req, res, pathname, usuario) {
     if (rotaPagamento) return pagamentosPix.despachar(req, res, pathname);
     const p = pathname.replace('/api/publico/', '');
     if (metodo === 'GET' && p === 'config') return onl.configPublica(req, res);
+    if (metodo === 'GET' && p === 'planos-clube') return club.planosPublicos(req, res);
     if (metodo === 'GET' && p === 'servicos') return onl.servicosPublicos(req, res);
     if (metodo === 'GET' && p === 'slots') return onl.slotsPublicos(req, res);
     if (metodo === 'POST' && p === 'agendar') return onl.agendarPublico(req, res);
@@ -180,6 +181,9 @@ async function tratarAPI(req, res, pathname, usuario) {
     if (pathname === '/api/clube/cliente' && metodo === 'GET') return club.clubeCliente(req, res);
     if (pathname === '/api/clube/cliente/contratar' && metodo === 'POST') return club.contratarCliente(req, res);
     if (pathname === '/api/clube/cliente/cancelar' && metodo === 'POST') return club.cancelarCliente(req, res);
+    const mCheckout = pathname.match(/^\/api\/clube\/cliente\/checkout\/(\d+)$/);
+    if (mCheckout && metodo === 'GET') return club.consultarCheckout(req, res, Number(mCheckout[1]));
+    if (mCheckout && metodo === 'POST') return club.informarPagamentoAssinatura(req, res);
     // painel administrativo
     if (!temPermissao(usuario, 'financeiro')) return erro(res, 403, 'Sem permissão para o clube de assinaturas');
     if (metodo === 'GET' && id === 'planos' && !sub) return club.listarPlanos(req, res);
