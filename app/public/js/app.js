@@ -2119,7 +2119,7 @@ async function paginaClube() {
   ]);
   layout(`
     <div class="topo"><div><h1>Clube de Assinaturas</h1><p class="texto-fraco">Planos de mensalidade com direitos de utilização de serviços.</p></div>
-      <div class="acoes"><button class="btn btn-primario" id="btn-novo-plano">+ Novo plano</button></div></div>
+      <div class="acoes"><button class="btn btn-perigo" id="btn-excluir-inativas">Excluir assinaturas inativas</button><button class="btn btn-primario" id="btn-novo-plano">+ Novo plano</button></div></div>
     <div class="grade-kpi">
       <div class="card kpi"><small>Assinantes ativos</small><b>${ind.assinantes_ativos}</b></div>
       <div class="card kpi"><small>Receita contratada/mês</small><b>${centavos(ind.mrr_contratado_centavos)}</b></div>
@@ -2140,6 +2140,20 @@ async function paginaClube() {
     <section class="dash-section"><h2>Serviços mais utilizados</h2><div class="card">${ind.servicos_mais_utilizados.map((s) => `<div class="linha-uso"><span>${esc(s.servico)}</span><b>${s.vezes} utilização(ões)</b></div>`).join('') || '<div class="vazio">Sem utilização registrada.</div>'}</div></section>
   `, 'clube');
 
+  $('#btn-excluir-inativas').onclick = async () => {
+    const inativas = assinaturas.filter((a) => a.status !== 'ativa');
+    if (!inativas.length) { toast('Nenhuma assinatura inativa para excluir.', 'info'); return; }
+    if (!confirmar(`Excluir ${inativas.length} assinatura(s) com status diferente de ativa? Esta ação não pode ser desfeita.`)) return;
+    await withLoading(async () => {
+      let ok = 0, falhas = 0;
+      for (const a of inativas) {
+        try { await del(`/api/clube/assinaturas/${a.id}`); ok++; }
+        catch (e) { falhas++; }
+      }
+      toast(`${ok} assinatura(s) excluída(s)${falhas ? `, ${falhas} falha(s)` : ''}.`, falhas ? 'info' : 'ok');
+      paginaClube();
+    });
+  };
   $('#btn-novo-plano').onclick = () => modalPlano(null);
   $$('.planos-grid [data-editar-plano]').forEach((b) => b.onclick = () => modalPlano(planos.find((p) => p.id === Number(b.dataset.editarPlano))));
   $$('.planos-grid [data-ativar-plano]').forEach((b) => b.onclick = async () => {

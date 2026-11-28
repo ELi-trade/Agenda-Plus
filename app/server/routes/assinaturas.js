@@ -469,9 +469,21 @@ async function informarPagamentoAssinatura(req, res) {
   db.prepare("UPDATE subscription_payments SET cliente_informou_em=datetime('now') WHERE id=?").run(pg.id);
   json(res, 200, { ok: true, mensagem: 'Aviso registrado. A clínica confirmará em breve.' });
 }
+async function excluirAssinatura(req, res, usuario, id) {
+  const a = db.prepare('SELECT id, status, cliente_id, plano_id FROM subscriptions WHERE id = ?').get(id);
+  if (!a) return erro(res, 404, 'Assinatura não encontrada');
+  if (a.status === 'ativa') return erro(res, 409, 'Só é possível excluir assinaturas que não estejam ativas.');
+  db.transaction(() => {
+    db.prepare('DELETE FROM subscription_payments WHERE assinatura_id = ?').run(id);
+    db.prepare('DELETE FROM subscription_cycles WHERE assinatura_id = ?').run(id);
+    db.prepare('DELETE FROM subscriptions WHERE id = ?').run(id);
+  })();
+  auditar('assinatura_excluida', { usuarioId: usuario.id, clienteId: a.cliente_id, entidade: 'subscription', entidadeId: id, detalhes: { status_anterior: a.status } });
+  json(res, 200, { ok: true, mensagem: 'Assinatura excluída.' });
+}
 module.exports = {
   listarPlanos, salvarPlano, ativarPlano, excluirPlano,
-  listarAssinaturas, obterAssinatura, contratar, alterarStatusAssinatura,
+  listarAssinaturas, obterAssinatura, contratar, alterarStatusAssinatura, excluirAssinatura,
   confirmarPagamento, indicadores,
   clubeCliente, contratarCliente, consultarCheckout, informarPagamentoAssinatura, cancelarCliente, planosPublicos,
   elegibilidade, aoCriarAgendamento, aoFinalizarAgendamento, aoCancelarAgendamento,

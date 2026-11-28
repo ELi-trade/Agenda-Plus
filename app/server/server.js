@@ -201,6 +201,7 @@ async function tratarAPI(req, res, pathname, usuario) {
         : club.confirmarPagamento(req, res, usuario, Number(mClube[1]));
     }
     if (metodo === 'POST' && id === 'assinaturas' && !sub) return club.contratar(req, res, usuario);
+    if (metodo === 'DELETE' && id === 'assinaturas' && sub) return club.excluirAssinatura(req, res, usuario, Number(sub));
     return erro(res, 404, 'Rota do clube não encontrada');
   }
 
